@@ -80,8 +80,8 @@
         }
 
         .questions-container {
-            padding: 30px 20px;
-            max-height: 60vh;
+            padding: 30px 20px 20px;
+            max-height: 50vh;
             overflow-y: auto;
         }
 
@@ -148,6 +148,9 @@
             justify-content: center;
             gap: 15px;
             background: #f8f9ff;
+            position: sticky;
+            bottom: 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
         }
 
         .nav-btn {
@@ -165,6 +168,11 @@
         .nav-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .nav-btn:disabled:hover {
+            transform: none !important;
         }
 
         .btn-complete {
@@ -1048,12 +1056,23 @@
             
             // Enable/disable complete button
             const completeBtn = document.getElementById('completeBtn');
+            const testBtn = document.getElementById('testBtn');
+            
             if (answeredQuestions === totalQuestions) {
                 completeBtn.disabled = false;
                 completeBtn.textContent = 'Test abschließen ✓';
             } else {
                 completeBtn.disabled = true;
                 completeBtn.textContent = `Noch ${totalQuestions - answeredQuestions} Fragen offen`;
+            }
+            
+            // Carmen Test Modus ist immer verfügbar wenn mindestens eine Frage beantwortet ist
+            if (answeredQuestions > 0) {
+                testBtn.disabled = false;
+                testBtn.innerHTML = '💖 Carmen Test Modus<br><small>Ohne alle Antworten</small>';
+            } else {
+                testBtn.disabled = true;
+                testBtn.innerHTML = '💖 Carmen Test Modus<br><small>Mindestens 1 Antwort nötig</small>';
             }
         }
 
@@ -1150,8 +1169,14 @@
             clearProgress();
             
             document.getElementById('questionsContainer').style.display = 'none';
-            document.getElementById('navigation').style.display = 'none';
+            // Keep navigation visible
             document.getElementById('results').classList.add('active');
+            
+            // Update navigation buttons for results view
+            const completeBtn = document.getElementById('completeBtn');
+            const testBtn = document.getElementById('testBtn');
+            completeBtn.style.display = 'none';
+            testBtn.style.display = 'none';
             
             // Check if custom weights are used
             const isCustom = !isStandardWeights();
@@ -1264,10 +1289,16 @@
             initializeMixedQuestions();
             loadQuestions();
             
-            // Show questions container
+            // Show questions container and navigation
             document.getElementById('questionsContainer').style.display = 'block';
             document.getElementById('navigation').style.display = 'flex';
             document.getElementById('results').classList.remove('active');
+            
+            // Show navigation buttons again
+            const completeBtn = document.getElementById('completeBtn');
+            const testBtn = document.getElementById('testBtn');
+            completeBtn.style.display = 'block';
+            testBtn.style.display = 'block';
             
             // Reset progress
             updateProgress();
