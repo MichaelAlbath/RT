@@ -151,14 +151,15 @@
         }
 
         .nav-btn {
-            padding: 15px 30px;
+            padding: 15px 25px;
             border: none;
             border-radius: 25px;
             font-size: 1em;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
-            min-width: 150px;
+            flex: 1;
+            max-width: 200px;
         }
 
         .nav-btn:disabled {
@@ -678,6 +679,7 @@
 
         <div class="navigation" id="navigation">
             <button class="nav-btn btn-complete" id="completeBtn" onclick="completeTest()">Test abschließen</button>
+            <button class="nav-btn" id="testBtn" onclick="forceComplete()" style="background: #dc3545; color: white; font-size: 0.85em;">💖 Carmen Test Modus<br><small>Ohne alle Antworten</small></button>
         </div>
     </div>
 
@@ -817,10 +819,90 @@
         };
 
         let answers = {};
+        let currentProgress = null;
+
+        // LocalStorage Functions
+        function saveProgress() {
+            const progressData = {
+                answers: getCurrentAnswers(),
+                timestamp: Date.now(),
+                questionMapping: questionMapping,
+                mixedQuestions: mixedQuestions,
+                pointValues: pointValues
+            };
+            try {
+                localStorage.setItem('riemannTestProgress', JSON.stringify(progressData));
+                console.log('Fortschritt gespeichert');
+            } catch (error) {
+                console.warn('LocalStorage nicht verfügbar:', error);
+            }
+        }
+
+        function loadProgress() {
+            try {
+                const saved = localStorage.getItem('riemannTestProgress');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    const fourHours = 4 * 60 * 60 * 1000; // 4 Stunden in Millisekunden
+                    
+                    if (Date.now() - data.timestamp < fourHours) {
+                        console.log('Fortschritt geladen');
+                        return data;
+                    } else {
+                        console.log('Gespeicherte Daten sind älter als 4 Stunden - werden gelöscht');
+                        localStorage.removeItem('riemannTestProgress');
+                    }
+                }
+            } catch (error) {
+                console.warn('Fehler beim Laden des Fortschritts:', error);
+            }
+            return null;
+        }
+
+        function clearProgress() {
+            try {
+                localStorage.removeItem('riemannTestProgress');
+                console.log('Fortschritt gelöscht');
+            } catch (error) {
+                console.warn('Fehler beim Löschen des Fortschritts:', error);
+            }
+        }
+
+        function getCurrentAnswers() {
+            const currentAnswers = {};
+            for (let i = 0; i < mixedQuestions.length; i++) {
+                const answer = document.querySelector(`input[name="q${i}"]:checked`);
+                if (answer) {
+                    currentAnswers[i] = parseInt(answer.value);
+                }
+            }
+            return currentAnswers;
+        }
+
+        function restoreAnswers(savedAnswers) {
+            for (const [questionIndex, answerValue] of Object.entries(savedAnswers)) {
+                const radioButton = document.querySelector(`input[name="q${questionIndex}"][value="${answerValue}"]`);
+                if (radioButton) {
+                    radioButton.checked = true;
+                }
+            }
+        }
 
         function initializeMixedQuestions() {
             mixedQuestions = [];
             questionMapping = {};
+            
+            // Prüfe ob gespeicherter Fortschritt vorhanden ist
+            const savedProgress = loadProgress();
+            if (savedProgress) {
+                // Verwende gespeicherte Daten
+                mixedQuestions = savedProgress.mixedQuestions;
+                questionMapping = savedProgress.questionMapping;
+                pointValues = savedProgress.pointValues || pointValues;
+                currentProgress = savedProgress;
+                console.log('Gespeicherte Fragen geladen');
+                return;
+            }
             
             // Create array of all questions with category info
             for (let category = 1; category <= 4; category++) {
@@ -843,6 +925,8 @@
             mixedQuestions.forEach((question, index) => {
                 questionMapping[index] = question.category;
             });
+            
+            console.log('Neue Fragen generiert und gemischt');
         }
 
         function loadQuestions() {
@@ -879,10 +963,67 @@
                 container.appendChild(questionDiv);
             });
 
-            // Add event listeners for progress tracking
+            // Restore saved answers if available
+            if (currentProgress && currentProgress.answers) {
+                restoreAnswers(currentProgress.answers);
+                showProgressRestoredMessage();
+            }
+
+            // Add event listeners for progress tracking and saving
             document.querySelectorAll('input[type="radio"]').forEach(input => {
-                input.addEventListener('change', updateProgress);
+                input.addEventListener('change', function() {
+                    updateProgress();
+                    saveProgress(); // Save after each answer
+                });
             });
+        }
+
+        function showProgressRestoredMessage() {
+            const answeredCount = Object.keys(currentProgress.answers).length;
+            if (answeredCount > 0) {
+                // Show a temporary message
+                const messageDiv = document.createElement('div');
+                messageDiv.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: #28a745;
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 25px;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                    z-index: 1000;
+                    font-weight: bold;
+                    animation: slideDown 0.5s ease;
+                `;
+                messageDiv.textContent = `✓ Fortschritt wiederhergestellt: ${answeredCount} Antworten geladen`;
+                
+                document.body.appendChild(messageDiv);
+                
+                // Remove message after 3 seconds
+                setTimeout(() => {
+                    messageDiv.style.animation = 'slideUp 0.5s ease';
+                    setTimeout(() => messageDiv.remove(), 500);
+                }, 3000);
+                
+                // Add CSS animations if not already present
+                if (!document.getElementById('progressAnimations')) {
+                    const style = document.createElement('style');
+                    style.id = 'progressAnimations';
+                    style.textContent = `
+                        @keyframes slideDown {
+                            from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+                            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+                        }
+                        @keyframes slideUp {
+                            from { transform: translateX(-50%) translateY(0); opacity: 1; }
+                            to { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+            }
         }
 
         function updateProgress() {
@@ -928,18 +1069,44 @@
             calculateResults();
         }
 
-        function calculateResults() {
+        // Carmen Test Function - Remove before production
+        function forceComplete() {
+            const totalQuestions = mixedQuestions.length;
+            let answeredQuestions = 0;
+            
+            for (let i = 0; i < totalQuestions; i++) {
+                const answer = document.querySelector(`input[name="q${i}"]:checked`);
+                if (answer) answeredQuestions++;
+            }
+            
+            const unanswered = totalQuestions - answeredQuestions;
+            
+            if (answeredQuestions === 0) {
+                alert("⚠️ Carmen Test Modus: Mindestens eine Frage muss beantwortet werden!");
+                return;
+            }
+            
+            if (confirm(`💖 Carmen Test Modus aktiviert!\n\nBeantwortet: ${answeredQuestions} von ${totalQuestions} Fragen\nUnbeantwortet: ${unanswered} Fragen\n\nUnbeantwortete Fragen werden mit 0 Punkten gewertet.\n\n⚠️ ACHTUNG: Dies ist nur für Testzwecke!\n\nMöchtest du trotzdem fortfahren?`)) {
+                calculateResults(true); // true = force mode
+            }
+        }
+
+        function calculateResults(forceMode = false) {
             const scores = { 1: 0, 2: 0, 3: 0, 4: 0 };
             answers = {};
+            let totalAnswered = 0;
+            let totalQuestions = mixedQuestions.length;
             
             for (let i = 0; i < mixedQuestions.length; i++) {
                 const answer = document.querySelector(`input[name="q${i}"]:checked`);
+                const category = questionMapping[i];
+                
                 if (answer) {
-                    const category = questionMapping[i];
                     const answerValue = parseInt(answer.value);
                     const points = pointValues[answerValue];
                     
                     scores[category] += points;
+                    totalAnswered++;
                     
                     // Store answer for detail view
                     if (!answers[category]) answers[category] = [];
@@ -948,10 +1115,18 @@
                         answer: getAnswerText(answerValue),
                         points: points
                     });
+                } else if (forceMode) {
+                    // In force mode, add unanswered questions with 0 points
+                    if (!answers[category]) answers[category] = [];
+                    answers[category].push({
+                        question: mixedQuestions[i].text,
+                        answer: 'nicht beantwortet',
+                        points: 0
+                    });
                 }
             }
             
-            showResults(scores);
+            showResults(scores, forceMode, totalAnswered, totalQuestions);
         }
 
         function getAnswerText(value) {
@@ -964,7 +1139,10 @@
             return answerTexts[value];
         }
 
-        function showResults(scores) {
+        function showResults(scores, forceMode = false, totalAnswered = 48, totalQuestions = 48) {
+            // Clear localStorage as test is completed
+            clearProgress();
+            
             document.getElementById('questionsContainer').style.display = 'none';
             document.getElementById('navigation').style.display = 'none';
             document.getElementById('results').classList.add('active');
@@ -972,6 +1150,25 @@
             // Check if custom weights are used
             const isCustom = !isStandardWeights();
             document.getElementById('customWeightsNotice').style.display = isCustom ? 'block' : 'none';
+            
+            // Show test mode warning if applicable
+            let testModeNotice = document.getElementById('testModeNotice');
+            if (!testModeNotice) {
+                testModeNotice = document.createElement('div');
+                testModeNotice.id = 'testModeNotice';
+                testModeNotice.className = 'custom-weights-notice';
+                testModeNotice.style.background = '#ffebee';
+                testModeNotice.style.borderColor = '#f44336';
+                testModeNotice.style.color = '#d32f2f';
+                document.getElementById('results').insertBefore(testModeNotice, document.querySelector('.score-grid'));
+            }
+            
+            if (forceMode) {
+                testModeNotice.style.display = 'block';
+                testModeNotice.innerHTML = `💖 <strong>Carmen Test Modus aktiv!</strong><br>Nur ${totalAnswered} von ${totalQuestions} Fragen beantwortet. Ergebnisse sind unvollständig!`;
+            } else {
+                testModeNotice.style.display = 'none';
+            }
             
             // Update score displays
             document.getElementById('scoreDistanz').textContent = scores[1].toFixed(1);
@@ -998,7 +1195,9 @@
             
             // Update progress to 100%
             document.getElementById('progressFill').style.width = '100%';
-            document.getElementById('progressInfo').textContent = 'Test abgeschlossen!';
+            document.getElementById('progressInfo').textContent = forceMode ? 
+                `Test im Carmen Test Modus abgeschlossen (${totalAnswered}/${totalQuestions})` : 
+                'Test abgeschlossen!';
         }
 
         function createQuestionDetails() {
@@ -1046,12 +1245,16 @@
         }
 
         function restartTest() {
+            // Clear localStorage
+            clearProgress();
+            
             // Reset all radio buttons
             document.querySelectorAll('input[type="radio"]').forEach(input => {
                 input.checked = false;
             });
             
             // Remix questions
+            currentProgress = null;
             initializeMixedQuestions();
             loadQuestions();
             
