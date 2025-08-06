@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riemann-Thomann Persönlichkeitstest</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .settings-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: all 0.3s ease;
+        }
+
+        .settings-icon:hover {
+            opacity: 1;
+            transform: rotate(90deg);
+        }
+
+        .progress-bar {
+            background: rgba(255,255,255,0.3);
+            height: 8px;
+            border-radius: 4px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: white;
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .progress-info {
+            margin-top: 10px;
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .questions-container {
+            padding: 30px 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .question {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 15px;
+            border-left: 4px solid #4facfe;
+        }
+
+        .question-number {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .question-text {
+            font-size: 1em;
+            margin-bottom: 15px;
+            line-height: 1.4;
+            color: #333;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .option {
+            position: relative;
+        }
+
+        .option input[type="radio"] {
+            display: none;
+        }
+
+        .option label {
+            display: block;
+            padding: 10px 8px;
+            text-align: center;
+            background: #e8f0fe;
+            border: 2px solid #e8f0fe;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8em;
+            font-weight: 500;
+            line-height: 1.2;
+        }
+
+        .option input[type="radio"]:checked + label {
+            background: #4facfe;
+            color: white;
+            border-color: #4facfe;
+            transform: scale(1.05);
+        }
+
+        .navigation {
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            background: #f8f9ff;
+        }
+
+        .nav-btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-complete {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-complete:hover:not(:disabled) {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .results {
+            display: none;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        .results h2 {
+            color: #4facfe;
+            margin-bottom: 30px;
+            font-size: 1.5em;
+        }
+
+        .score-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .score-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .score-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .score-value {
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+
+        .visualization-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .visualization-title {
+            text-align: center;
+            color: #4facfe;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .chart-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 350px;
+        }
+
+        .riemann-chart {
+            width: 100%;
+            max-width: 320px;
+            height: 320px;
+        }
+
+        .axis-line {
+            stroke: #e0e0e0;
+            stroke-width: 2;
+        }
+
+        .grid-line {
+            stroke: #f0f0f0;
+            stroke-width: 1;
+        }
+
+        .axis-label {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            fill: #4facfe;
+            text-anchor: middle;
+        }
+
+        .score-point {
+            fill: #ff6b35;
+            stroke: #fff;
+            stroke-width: 2;
+        }
+
+        .profile-polygon {
+            fill: rgba(255, 107, 53, 0.2);
+            stroke: #ff6b35;
+            stroke-width: 3;
+            stroke-linejoin: round;
+        }
+
+        .scale-text {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 10px;
+            fill: #666;
+            text-anchor: middle;
+        }
+
+        .dominant-type {
+            background: #4facfe;
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .question-details {
+            background: #f8f9ff;
+            border-radius: 15px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .details-toggle {
+            width: 100%;
+            background: #e8f0fe;
+            border: none;
+            padding: 15px 20px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            color: #4facfe;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s ease;
+        }
+
+        .details-toggle:hover {
+            background: #d0e7ff;
+        }
+
+        .details-content {
+            display: none;
+            padding: 0 20px 20px;
+        }
+
+        .details-content.active {
+            display: block;
+        }
+
+        .category-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .category-title {
+            font-weight: bold;
+            color: #4facfe;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e8f0fe;
+        }
+
+        .answer-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .answer-item:last-child {
+            border-bottom: none;
+        }
+
+        .answer-question {
+            flex: 1;
+            font-size: 0.9em;
+            line-height: 1.3;
+            margin-right: 15px;
+        }
+
+        .answer-value {
+            background: #4facfe;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .restart-btn {
+            background: #28a745;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .restart-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            animation: slideUp 0.3s ease;
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #4facfe;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .settings-group {
+            margin-bottom: 25px;
+        }
+
+        .settings-group h4 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .point-input {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f8f9ff;
+            border-radius: 10px;
+        }
+
+        .point-input label {
+            flex: 1;
+            font-size: 0.9em;
+        }
+
+        .point-input input {
+            width: 70px;
+            padding: 5px 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .presets {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .preset-btn {
+            padding: 8px 15px;
+            background: #e8f0fe;
+            border: 1px solid #4facfe;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s ease;
+        }
+
+        .preset-btn:hover {
+            background: #4facfe;
+            color: white;
+        }
+
+        .max-points {
+            text-align: center;
+            padding: 15px;
+            background: #e8f5e8;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .settings-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .settings-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .reset-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .save-btn {
+            background: #28a745;
+            color: white;
+        }
+
+        .custom-weights-notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 0.85em;
+            text-align: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @media (max-width: 480px) {
+            .options {
+                grid-template-columns: 1fr;
+            }
+            
+            .score-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .presets {
+                flex-direction: column;
+            }
+
+            .preset-btn {
+                text-align: center;
+            }
+
+            .answer-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .answer-value {
+                align-self: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <svg class="settings-icon" onclick="openSettings()" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" />
+            </svg>
+            <h1>Riemann-Thomann Persönlichkeitstest</h1>
+            <p>Entdecke deine Persönlichkeitsstruktur</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-info" id="progressInfo">Frage 0 von 48</div>
+        </div>
+
+        <!-- Questions Container -->
+        <div class="questions-container" id="questionsContainer">
+            <!-- Questions will be loaded here -->
+        </div>
+
+        <!-- Results -->
+        <div class="results" id="results">
+            <h2>Deine Ergebnisse</h2>
+            <div id="customWeightsNotice" class="custom-weights-notice" style="display: none;">
+                ⚙️ Benutzerdefinierte Gewichtung verwendet
+            </div>
+            <div class="score-grid">
+                <div class="score-item">
+                    <div class="score-label">Distanz</div>
+                    <div class="score-value" id="scoreDistanz">0</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-label">Nähe</div>
+                    <div class="score-value" id="scoreNaehe">0</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-label">Dauer</div>
+                    <div class="score-value" id="scoreDauer">0</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-label">Wechsel</div>
+                    <div class="score-value" id="scoreWechsel">0</div>
+                </div>
+            </div>
+            
+            <div class="visualization-container">
+                <div class="visualization-title">📊 Dein Persönlichkeitsprofil</div>
+                <div class="chart-container">
+                    <svg class="riemann-chart" id="riemannChart" viewBox="0 0 320 320">
+                        <!-- Grid lines -->
+                        <g id="gridLines"></g>
+                        
+                        <!-- Main axes -->
+                        <line x1="160" y1="40" x2="160" y2="280" class="axis-line"/>
+                        <line x1="40" y1="160" x2="280" y2="160" class="axis-line"/>
+                        
+                        <!-- Axis labels -->
+                        <text x="160" y="25" class="axis-label">Dauer</text>
+                        <text x="160" y="305" class="axis-label">Wechsel</text>
+                        <text x="20" y="165" class="axis-label">Nähe</text>
+                        <text x="300" y="165" class="axis-label">Distanz</text>
+                        
+                        <!-- Profile polygon -->
+                        <polygon id="profilePolygon" class="profile-polygon" points=""/>
+                        
+                        <!-- Score points -->
+                        <circle id="distanzPoint" class="score-point" r="6"/>
+                        <circle id="naehePoint" class="score-point" r="6"/>
+                        <circle id="dauerPoint" class="score-point" r="6"/>
+                        <circle id="wechselPoint" class="score-point" r="6"/>
+                        
+                        <!-- Scale markers -->
+                        <g id="scaleMarkers"></g>
+                    </svg>
+                </div>
+            </div>
+            
+            <div class="dominant-type" id="dominantType">
+                <h3>Dein dominanter Persönlichkeitstyp</h3>
+                <p id="typeDescription"></p>
+            </div>
+
+            <div class="question-details">
+                <button class="details-toggle" onclick="toggleDetails()">
+                    📋 Deine Antworten im Detail anzeigen
+                    <span id="toggleIcon">▼</span>
+                </button>
+                <div class="details-content" id="detailsContent">
+                    <!-- Content will be populated here -->
+                </div>
+            </div>
+
+            <button class="restart-btn" onclick="restartTest()">Test wiederholen</button>
+        </div>
+
+        <div class="navigation" id="navigation">
+            <button class="nav-btn btn-complete" id="completeBtn" onclick="completeTest()">Test abschließen</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeSettings()">×</button>
+            <div class="modal-header">
+                <h3>⚙️ Bewertungseinstellungen</h3>
+            </div>
+            
+            <div class="settings-group">
+                <h4>Punktverteilung anpassen:</h4>
+                <div class="point-input">
+                    <label>stimmt genau:</label>
+                    <input type="number" id="points3" min="0" step="0.01" value="1.00">
+                </div>
+                <div class="point-input">
+                    <label>stimmt eher:</label>
+                    <input type="number" id="points2" min="0" step="0.01" value="0.67">
+                </div>
+                <div class="point-input">
+                    <label>stimmt wenig:</label>
+                    <input type="number" id="points1" min="0" step="0.01" value="0.33">
+                </div>
+                <div class="point-input">
+                    <label>stimmt nicht:</label>
+                    <input type="number" id="points0" min="0" step="0.01" value="0.00">
+                </div>
+            </div>
+
+            <div class="max-points" id="maxPointsDisplay">
+                Maximale Gesamtpunktzahl: 48.0
+            </div>
+
+            <div class="settings-group">
+                <h4>Vorgefertigte Einstellungen:</h4>
+                <div class="presets">
+                    <button class="preset-btn" onclick="applyPreset('standard')">Standard</button>
+                    <button class="preset-btn" onclick="applyPreset('linear')">Linear (3-2-1-0)</button>
+                    <button class="preset-btn" onclick="applyPreset('weighted')">Gewichtet</button>
+                    <button class="preset-btn" onclick="applyPreset('binary')">Binär</button>
+                </div>
+            </div>
+
+            <div class="settings-actions">
+                <button class="settings-btn reset-btn" onclick="resetToDefaults()">Zurücksetzen</button>
+                <button class="settings-btn save-btn" onclick="saveSettings()">Speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const originalQuestions = {
+            1: [
+                "Unabhängigkeit ist mir sehr wichtig.",
+                "Ich mache meine Sache lieber allein, bevor ich jemanden um Rat frage.",
+                "Es fällt mir leicht, Zusammenhänge zu durchschauen.",
+                "Ich möchte nicht einer unter vielen sein, sondern aus der Masse herausragen.",
+                "Ich möchte es im Leben weit bringen / habe es weit gebracht.",
+                "Ich lasse mich häufiger zu spitzen Bemerkungen hinreißen.",
+                "Es liegt mir, Verantwortung zu tragen.",
+                "Ich bin eher ein distanzierter Mensch.",
+                "Ich fühle mich schnell ergriffen.",
+                "Ich ordne mich nicht gerne unter.",
+                "Argumente sind mir wichtiger als Emotionen.",
+                "Meiner Argumentation ist so leicht keiner gewachsen."
+            ],
+            2: [
+                "Ich neige dazu, mich ausnutzen zu lassen.",
+                "Es fällt mir viel leichter, für meine(n) Partner(in) ein Geschenk zu kaufen, als für mich selbst.",
+                "Um des lieben Friedens Willen gebe ich nach.",
+                "Es gibt nichts Schlimmeres im Leben, als einen nahestehenden Menschen zu verlieren.",
+                "Ich bin ein friedlicher Mensch.",
+                "Bescheidenheit ist eine Zier.",
+                "Ich habe immer ein offenes Ohr für die Sorgen anderer Menschen.",
+                "Ich wehre mich nicht, aus Angst, die Zuneigung anderer zu verlieren.",
+                "Ich beklage mich häufig über mein Los.",
+                "Ich sorge mich sehr für mein leibliches Wohl, das Wohl meiner Familie.",
+                "Die anderen sollen mich auch so verwöhnen, wie ich sie.",
+                "Dauernd will einer was von mir."
+            ],
+            3: [
+                "Es ist mir wichtig, meiner Sache ganz sicher zu sein.",
+                "Ich wäge lange ab, bevor ich mich entscheide.",
+                "Ich lasse lieber alles beim Alten.",
+                "Es ist mir wichtig, die Übersicht zu haben.",
+                "Ich würde nie unvorbereitet in eine unbekannte Situation hineinspringen.",
+                "Gesetze sind dazu da, eingehalten zu werden; ich halte mich auch daran.",
+                "Ich bin belastungsfähig.",
+                "Ich halte mich für einen eher konservativen Menschen.",
+                "Vertrauen ist gut, Kontrolle ist besser.",
+                "Ich bin ein zuverlässiger Mensch.",
+                "Wie es drinnen aussieht, geht niemanden etwas an.",
+                "Ich gehe nicht gerne ein Risiko ein."
+            ],
+            4: [
+                "Von mir gehen kreative Impulse aus.",
+                "Ich neige zu Unpünktlichkeit.",
+                "Regeln empfinde ich als Begrenzung meiner Freiheit.",
+                "Ich kann mühelos eine ganze Gesellschaft unterhalten.",
+                "Ich habe Angst, abgelehnt zu werden.",
+                "Ich kann schlecht warten.",
+                "Ich bin ausgesprochen kontaktfreudig.",
+                "Ich möchte von allen geliebt werden.",
+                "Ich kann mich schnell für etwas begeistern.",
+                "Der Reiz des Neuen ist schnell vorbei.",
+                "Ich bin leider so inkonsequent.",
+                "Ich wage nicht, meine Meinung zu sagen, wenn sie von der anderer abweicht."
+            ]
+        };
+
+        const categoryNames = {
+            1: 'Distanz',
+            2: 'Nähe', 
+            3: 'Dauer',
+            4: 'Wechsel'
+        };
+
+        const typeDescriptions = {
+            'Distanz': 'Du bist analytisch, unabhängig und lösungsorientiert. Du bevorzugst Sachlichkeit und gehst gerne eigene Wege.',
+            'Nähe': 'Du bist empathisch, hilfsbereit und harmoniebedürftig. Beziehungen und Gemeinschaft sind dir sehr wichtig.',
+            'Dauer': 'Du bist zuverlässig, beständig und sicherheitsorientiert. Du schätzt Struktur und Planbarkeit.',
+            'Wechsel': 'Du bist kreativ, spontan und veränderungsorientiert. Du liebst Abwechslung und neue Erfahrungen.'
+        };
+
+        // Create mixed questions array with category tracking
+        let mixedQuestions = [];
+        let questionMapping = {};
+
+        // Default point values
+        let pointValues = {
+            3: 1.00,    // stimmt genau
+            2: 0.67,    // stimmt eher
+            1: 0.33,    // stimmt wenig
+            0: 0.00     // stimmt nicht
+        };
+
+        let answers = {};
+
+        function initializeMixedQuestions() {
+            mixedQuestions = [];
+            questionMapping = {};
+            
+            // Create array of all questions with category info
+            for (let category = 1; category <= 4; category++) {
+                originalQuestions[category].forEach((question, index) => {
+                    mixedQuestions.push({
+                        text: question,
+                        category: category,
+                        originalIndex: index
+                    });
+                });
+            }
+            
+            // Shuffle the questions
+            for (let i = mixedQuestions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [mixedQuestions[i], mixedQuestions[j]] = [mixedQuestions[j], mixedQuestions[i]];
+            }
+            
+            // Create mapping for later evaluation
+            mixedQuestions.forEach((question, index) => {
+                questionMapping[index] = question.category;
+            });
+        }
+
+        function loadQuestions() {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = '';
+            
+            mixedQuestions.forEach((question, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question';
+                
+                questionDiv.innerHTML = `
+                    <div class="question-number">Frage ${index + 1} von 48</div>
+                    <div class="question-text">${question.text}</div>
+                    <div class="options">
+                        <div class="option">
+                            <input type="radio" id="q${index}_3" name="q${index}" value="3">
+                            <label for="q${index}_3">stimmt genau</label>
+                        </div>
+                        <div class="option">
+                            <input type="radio" id="q${index}_2" name="q${index}" value="2">
+                            <label for="q${index}_2">stimmt eher</label>
+                        </div>
+                        <div class="option">
+                            <input type="radio" id="q${index}_1" name="q${index}" value="1">
+                            <label for="q${index}_1">stimmt wenig</label>
+                        </div>
+                        <div class="option">
+                            <input type="radio" id="q${index}_0" name="q${index}" value="0">
+                            <label for="q${index}_0">stimmt nicht</label>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(questionDiv);
+            });
+
+            // Add event listeners for progress tracking
+            document.querySelectorAll('input[type="radio"]').forEach(input => {
+                input.addEventListener('change', updateProgress);
+            });
+        }
+
+        function updateProgress() {
+            const totalQuestions = mixedQuestions.length;
+            let answeredQuestions = 0;
+            
+            for (let i = 0; i < totalQuestions; i++) {
+                const answer = document.querySelector(`input[name="q${i}"]:checked`);
+                if (answer) answeredQuestions++;
+            }
+            
+            const progress = (answeredQuestions / totalQuestions) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressInfo').textContent = 
+                `Frage ${answeredQuestions} von ${totalQuestions} beantwortet`;
+            
+            // Enable/disable complete button
+            const completeBtn = document.getElementById('completeBtn');
+            if (answeredQuestions === totalQuestions) {
+                completeBtn.disabled = false;
+                completeBtn.textContent = 'Test abschließen ✓';
+            } else {
+                completeBtn.disabled = true;
+                completeBtn.textContent = `Noch ${totalQuestions - answeredQuestions} Fragen offen`;
+            }
+        }
+
+        function completeTest() {
+            // Check if all questions are answered
+            const totalQuestions = mixedQuestions.length;
+            let answeredQuestions = 0;
+            
+            for (let i = 0; i < totalQuestions; i++) {
+                const answer = document.querySelector(`input[name="q${i}"]:checked`);
+                if (answer) answeredQuestions++;
+            }
+            
+            if (answeredQuestions < totalQuestions) {
+                alert(`Bitte beantworte alle Fragen. ${totalQuestions - answeredQuestions} Fragen sind noch offen.`);
+                return;
+            }
+            
+            calculateResults();
+        }
+
+        function calculateResults() {
+            const scores = { 1: 0, 2: 0, 3: 0, 4: 0 };
+            answers = {};
+            
+            for (let i = 0; i < mixedQuestions.length; i++) {
+                const answer = document.querySelector(`input[name="q${i}"]:checked`);
+                if (answer) {
+                    const category = questionMapping[i];
+                    const answerValue = parseInt(answer.value);
+                    const points = pointValues[answerValue];
+                    
+                    scores[category] += points;
+                    
+                    // Store answer for detail view
+                    if (!answers[category]) answers[category] = [];
+                    answers[category].push({
+                        question: mixedQuestions[i].text,
+                        answer: getAnswerText(answerValue),
+                        points: points
+                    });
+                }
+            }
+            
+            showResults(scores);
+        }
+
+        function getAnswerText(value) {
+            const answerTexts = {
+                3: 'stimmt genau',
+                2: 'stimmt eher', 
+                1: 'stimmt wenig',
+                0: 'stimmt nicht'
+            };
+            return answerTexts[value];
+        }
+
+        function showResults(scores) {
+            document.getElementById('questionsContainer').style.display = 'none';
+            document.getElementById('navigation').style.display = 'none';
+            document.getElementById('results').classList.add('active');
+            
+            // Check if custom weights are used
+            const isCustom = !isStandardWeights();
+            document.getElementById('customWeightsNotice').style.display = isCustom ? 'block' : 'none';
+            
+            // Update score displays
+            document.getElementById('scoreDistanz').textContent = scores[1].toFixed(1);
+            document.getElementById('scoreNaehe').textContent = scores[2].toFixed(1);
+            document.getElementById('scoreDauer').textContent = scores[3].toFixed(1);
+            document.getElementById('scoreWechsel').textContent = scores[4].toFixed(1);
+            
+            // Determine dominant type
+            const maxScore = Math.max(scores[1], scores[2], scores[3], scores[4]);
+            let dominantType = '';
+            
+            if (scores[1] === maxScore) dominantType = 'Distanz';
+            else if (scores[2] === maxScore) dominantType = 'Nähe';
+            else if (scores[3] === maxScore) dominantType = 'Dauer';
+            else if (scores[4] === maxScore) dominantType = 'Wechsel';
+            
+            document.getElementById('typeDescription').textContent = typeDescriptions[dominantType];
+            
+            // Update visualization
+            updateVisualization(scores);
+            
+            // Create question details
+            createQuestionDetails();
+            
+            // Update progress to 100%
+            document.getElementById('progressFill').style.width = '100%';
+            document.getElementById('progressInfo').textContent = 'Test abgeschlossen!';
+        }
+
+        function createQuestionDetails() {
+            const detailsContent = document.getElementById('detailsContent');
+            detailsContent.innerHTML = '';
+            
+            for (let category = 1; category <= 4; category++) {
+                const categorySection = document.createElement('div');
+                categorySection.className = 'category-section';
+                
+                const categoryTitle = document.createElement('div');
+                categoryTitle.className = 'category-title';
+                categoryTitle.textContent = `${categoryNames[category]} (${answers[category] ? answers[category].reduce((sum, a) => sum + a.points, 0).toFixed(1) : '0.0'} Punkte)`;
+                categorySection.appendChild(categoryTitle);
+                
+                if (answers[category]) {
+                    answers[category].forEach(answer => {
+                        const answerItem = document.createElement('div');
+                        answerItem.className = 'answer-item';
+                        
+                        answerItem.innerHTML = `
+                            <div class="answer-question">${answer.question}</div>
+                            <div class="answer-value">${answer.answer}</div>
+                        `;
+                        
+                        categorySection.appendChild(answerItem);
+                    });
+                }
+                
+                detailsContent.appendChild(categorySection);
+            }
+        }
+
+        function toggleDetails() {
+            const content = document.getElementById('detailsContent');
+            const icon = document.getElementById('toggleIcon');
+            
+            if (content.classList.contains('active')) {
+                content.classList.remove('active');
+                icon.textContent = '▼';
+            } else {
+                content.classList.add('active');
+                icon.textContent = '▲';
+            }
+        }
+
+        function restartTest() {
+            // Reset all radio buttons
+            document.querySelectorAll('input[type="radio"]').forEach(input => {
+                input.checked = false;
+            });
+            
+            // Remix questions
+            initializeMixedQuestions();
+            loadQuestions();
+            
+            // Show questions container
+            document.getElementById('questionsContainer').style.display = 'block';
+            document.getElementById('navigation').style.display = 'flex';
+            document.getElementById('results').classList.remove('active');
+            
+            // Reset progress
+            updateProgress();
+            
+            // Reset details toggle
+            document.getElementById('detailsContent').classList.remove('active');
+            document.getElementById('toggleIcon').textContent = '▼';
+        }
+
+        // Visualization Functions (unchanged from previous version)
+        function updateVisualization(scores) {
+            const maxPossible = pointValues[3] * 12;
+            const centerX = 160;
+            const centerY = 160;
+            const maxRadius = 120;
+            
+            const positions = {
+                dauer: {
+                    x: centerX,
+                    y: centerY - (scores[3] / maxPossible) * maxRadius
+                },
+                distanz: {
+                    x: centerX + (scores[1] / maxPossible) * maxRadius,
+                    y: centerY
+                },
+                wechsel: {
+                    x: centerX,
+                    y: centerY + (scores[4] / maxPossible) * maxRadius
+                },
+                naehe: {
+                    x: centerX - (scores[2] / maxPossible) * maxRadius,
+                    y: centerY
+                }
+            };
+            
+            document.getElementById('distanzPoint').setAttribute('cx', positions.distanz.x);
+            document.getElementById('distanzPoint').setAttribute('cy', positions.distanz.y);
+            
+            document.getElementById('naehePoint').setAttribute('cx', positions.naehe.x);
+            document.getElementById('naehePoint').setAttribute('cy', positions.naehe.y);
+            
+            document.getElementById('dauerPoint').setAttribute('cx', positions.dauer.x);
+            document.getElementById('dauerPoint').setAttribute('cy', positions.dauer.y);
+            
+            document.getElementById('wechselPoint').setAttribute('cx', positions.wechsel.x);
+            document.getElementById('wechselPoint').setAttribute('cy', positions.wechsel.y);
+            
+            const polygonPoints = [
+                `${positions.dauer.x},${positions.dauer.y}`,
+                `${positions.distanz.x},${positions.distanz.y}`,
+                `${positions.wechsel.x},${positions.wechsel.y}`,
+                `${positions.naehe.x},${positions.naehe.y}`
+            ].join(' ');
+            
+            document.getElementById('profilePolygon').setAttribute('points', polygonPoints);
+            
+            updateGridAndScale(maxPossible, maxRadius, centerX, centerY);
+        }
+        
+        function updateGridAndScale(maxPossible, maxRadius, centerX, centerY) {
+            const gridContainer = document.getElementById('gridLines');
+            const scaleContainer = document.getElementById('scaleMarkers');
+            
+            gridContainer.innerHTML = '';
+            scaleContainer.innerHTML = '';
+            
+            const steps = 4;
+            for (let i = 1; i <= steps; i++) {
+                const radius = (maxRadius / steps) * i;
+                const value = (maxPossible / steps) * i;
+                
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', centerX);
+                circle.setAttribute('cy', centerY);
+                circle.setAttribute('r', radius);
+                circle.setAttribute('class', 'grid-line');
+                circle.setAttribute('fill', 'none');
+                gridContainer.appendChild(circle);
+                
+                const scaleText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                scaleText.setAttribute('x', centerX + 8);
+                scaleText.setAttribute('y', centerY - radius + 3);
+                scaleText.setAttribute('class', 'scale-text');
+                scaleText.textContent = value.toFixed(1);
+                scaleContainer.appendChild(scaleText);
+            }
+            
+            const centerPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            centerPoint.setAttribute('cx', centerX);
+            centerPoint.setAttribute('cy', centerY);
+            centerPoint.setAttribute('r', '3');
+            centerPoint.setAttribute('fill', '#666');
+            scaleContainer.appendChild(centerPoint);
+            
+            const zeroText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            zeroText.setAttribute('x', centerX + 8);
+            zeroText.setAttribute('y', centerY + 3);
+            zeroText.setAttribute('class', 'scale-text');
+            zeroText.textContent = '0';
+            scaleContainer.appendChild(zeroText);
+        }
+
+        // Settings Functions (unchanged from previous version)
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('active');
+            updatePointInputs();
+            updateMaxPoints();
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function updatePointInputs() {
+            document.getElementById('points3').value = pointValues[3].toFixed(2);
+            document.getElementById('points2').value = pointValues[2].toFixed(2);
+            document.getElementById('points1').value = pointValues[1].toFixed(2);
+            document.getElementById('points0').value = pointValues[0].toFixed(2);
+        }
+
+        function updateMaxPoints() {
+            const maxPoints = pointValues[3] * 12 * 4;
+            document.getElementById('maxPointsDisplay').textContent = 
+                `Maximale Gesamtpunktzahl: ${maxPoints.toFixed(1)}`;
+        }
+
+        function applyPreset(presetName) {
+            switch(presetName) {
+                case 'standard':
+                    pointValues = { 3: 1.00, 2: 0.67, 1: 0.33, 0: 0.00 };
+                    break;
+                case 'linear':
+                    pointValues = { 3: 3.00, 2: 2.00, 1: 1.00, 0: 0.00 };
+                    break;
+                case 'weighted':
+                    pointValues = { 3: 2.00, 2: 1.00, 1: 0.50, 0: 0.00 };
+                    break;
+                case 'binary':
+                    pointValues = { 3: 1.00, 2: 1.00, 1: 0.00, 0: 0.00 };
+                    break;
+            }
+            updatePointInputs();
+            updateMaxPoints();
+        }
+
+        function resetToDefaults() {
+            applyPreset('standard');
+        }
+
+        function saveSettings() {
+            pointValues[3] = parseFloat(document.getElementById('points3').value) || 0;
+            pointValues[2] = parseFloat(document.getElementById('points2').value) || 0;
+            pointValues[1] = parseFloat(document.getElementById('points1').value) || 0;
+            pointValues[0] = parseFloat(document.getElementById('points0').value) || 0;
+            
+            updateMaxPoints();
+            closeSettings();
+        }
+
+        function isStandardWeights() {
+            return pointValues[3] === 1.00 && 
+                   pointValues[2] === 0.67 && 
+                   pointValues[1] === 0.33 && 
+                   pointValues[0] === 0.00;
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMixedQuestions();
+            loadQuestions();
+            updateProgress();
+            
+            // Add event listeners for real-time updates in settings
+            ['points3', 'points2', 'points1', 'points0'].forEach(id => {
+                document.addEventListener('input', function(e) {
+                    if (e.target.id === id) {
+                        updateMaxPoints();
+                    }
+                });
+            });
+        });
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('settingsModal');
+            if (e.target === modal) {
+                closeSettings();
+            }
+        });
+    </script>
+</body>
+</html>
