@@ -809,6 +809,8 @@
         // Create mixed questions array with category tracking
         let mixedQuestions = [];
         let questionMapping = {};
+        let answers = {};
+        let currentProgress = null;
 
         // Default point values
         let pointValues = {
@@ -817,9 +819,6 @@
             1: 0.33,    // stimmt wenig
             0: 0.00     // stimmt nicht
         };
-
-        let answers = {};
-        let currentProgress = null;
 
         // LocalStorage Functions
         function saveProgress() {
@@ -983,6 +982,7 @@
 
             // Initial progress update (important for restored progress)
             updateProgress();
+        }
 
         function showProgressRestoredMessage() {
             const answeredCount = Object.keys(currentProgress.answers).length;
@@ -1095,115 +1095,6 @@
             if (confirm(`💖 Carmen Test Modus aktiviert!\n\nBeantwortet: ${answeredQuestions} von ${totalQuestions} Fragen\nUnbeantwortet: ${unanswered} Fragen\n\nUnbeantwortete Fragen werden mit 0 Punkten gewertet.\n\n⚠️ ACHTUNG: Dies ist nur für Testzwecke!\n\nMöchtest du trotzdem fortfahren?`)) {
                 calculateResults(true); // true = force mode
             }
-        }
-
-        function getAnswerText(value) {
-            const answerTexts = {
-                3: 'stimmt genau',
-                2: 'stimmt eher', 
-                1: 'stimmt wenig',
-                0: 'stimmt nicht'
-            };
-            return answerTexts[value];
-        }
-
-        function calculateResults(forceMode = false) {
-            const scores = { 1: 0, 2: 0, 3: 0, 4: 0 };
-            answers = {};
-            let totalAnswered = 0;
-            let totalQuestions = mixedQuestions.length;
-            
-            for (let i = 0; i < mixedQuestions.length; i++) {
-                const answer = document.querySelector(`input[name="q${i}"]:checked`);
-                const category = questionMapping[i];
-                
-                if (answer) {
-                    const answerValue = parseInt(answer.value);
-                    const points = pointValues[answerValue];
-                    
-                    scores[category] += points;
-                    totalAnswered++;
-                    
-                    // Store answer for detail view
-                    if (!answers[category]) answers[category] = [];
-                    answers[category].push({
-                        question: mixedQuestions[i].text,
-                        answer: getAnswerText(answerValue),
-                        points: points
-                    });
-                } else if (forceMode) {
-                    // In force mode, add unanswered questions with 0 points
-                    if (!answers[category]) answers[category] = [];
-                    answers[category].push({
-                        question: mixedQuestions[i].text,
-                        answer: 'nicht beantwortet',
-                        points: 0
-                    });
-                }
-            }
-            
-            showResults(scores, forceMode, totalAnswered, totalQuestions);
-        }
-
-        function showResults(scores, forceMode = false, totalAnswered = 48, totalQuestions = 48) {
-            // Clear localStorage as test is completed
-            clearProgress();
-            
-            document.getElementById('questionsContainer').style.display = 'none';
-            document.getElementById('navigation').style.display = 'none';
-            document.getElementById('results').classList.add('active');
-            
-            // Check if custom weights are used
-            const isCustom = !isStandardWeights();
-            document.getElementById('customWeightsNotice').style.display = isCustom ? 'block' : 'none';
-            
-            // Show test mode warning if applicable
-            let testModeNotice = document.getElementById('testModeNotice');
-            if (!testModeNotice) {
-                testModeNotice = document.createElement('div');
-                testModeNotice.id = 'testModeNotice';
-                testModeNotice.className = 'custom-weights-notice';
-                testModeNotice.style.background = '#ffebee';
-                testModeNotice.style.borderColor = '#f44336';
-                testModeNotice.style.color = '#d32f2f';
-                document.getElementById('results').insertBefore(testModeNotice, document.querySelector('.score-grid'));
-            }
-            
-            if (forceMode) {
-                testModeNotice.style.display = 'block';
-                testModeNotice.innerHTML = `💖 <strong>Carmen Test Modus aktiv!</strong><br>Nur ${totalAnswered} von ${totalQuestions} Fragen beantwortet. Ergebnisse sind unvollständig!`;
-            } else {
-                testModeNotice.style.display = 'none';
-            }
-            
-            // Update score displays
-            document.getElementById('scoreDistanz').textContent = scores[1].toFixed(1);
-            document.getElementById('scoreNaehe').textContent = scores[2].toFixed(1);
-            document.getElementById('scoreDauer').textContent = scores[3].toFixed(1);
-            document.getElementById('scoreWechsel').textContent = scores[4].toFixed(1);
-            
-            // Determine dominant type
-            const maxScore = Math.max(scores[1], scores[2], scores[3], scores[4]);
-            let dominantType = '';
-            
-            if (scores[1] === maxScore) dominantType = 'Distanz';
-            else if (scores[2] === maxScore) dominantType = 'Nähe';
-            else if (scores[3] === maxScore) dominantType = 'Dauer';
-            else if (scores[4] === maxScore) dominantType = 'Wechsel';
-            
-            document.getElementById('typeDescription').textContent = typeDescriptions[dominantType];
-            
-            // Update visualization
-            updateVisualization(scores);
-            
-            // Create question details
-            createQuestionDetails();
-            
-            // Update progress to 100%
-            document.getElementById('progressFill').style.width = '100%';
-            document.getElementById('progressInfo').textContent = forceMode ? 
-                `Test im Carmen Test Modus abgeschlossen (${totalAnswered}/${totalQuestions})` : 
-                'Test abgeschlossen!';
         }
 
         function calculateResults(forceMode = false) {
@@ -1543,47 +1434,6 @@
                    pointValues[0] === 0.00;
         }
 
-        // Test completion functions
-        function completeTest() {
-            // Check if all questions are answered
-            const totalQuestions = mixedQuestions.length;
-            let answeredQuestions = 0;
-            
-            for (let i = 0; i < totalQuestions; i++) {
-                const answer = document.querySelector(`input[name="q${i}"]:checked`);
-                if (answer) answeredQuestions++;
-            }
-            
-            if (answeredQuestions < totalQuestions) {
-                alert(`Bitte beantworte alle Fragen. ${totalQuestions - answeredQuestions} Fragen sind noch offen.`);
-                return;
-            }
-            
-            calculateResults();
-        }
-
-        // Carmen Test Function - Remove before production
-        function forceComplete() {
-            const totalQuestions = mixedQuestions.length;
-            let answeredQuestions = 0;
-            
-            for (let i = 0; i < totalQuestions; i++) {
-                const answer = document.querySelector(`input[name="q${i}"]:checked`);
-                if (answer) answeredQuestions++;
-            }
-            
-            const unanswered = totalQuestions - answeredQuestions;
-            
-            if (answeredQuestions === 0) {
-                alert("⚠️ Carmen Test Modus: Mindestens eine Frage muss beantwortet werden!");
-                return;
-            }
-            
-            if (confirm(`💖 Carmen Test Modus aktiviert!\n\nBeantwortet: ${answeredQuestions} von ${totalQuestions} Fragen\nUnbeantwortet: ${unanswered} Fragen\n\nUnbeantwortete Fragen werden mit 0 Punkten gewertet.\n\n⚠️ ACHTUNG: Dies ist nur für Testzwecke!\n\nMöchtest du trotzdem fortfahren?`)) {
-                calculateResults(true); // true = force mode
-            }
-        }
-
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
             initializeMixedQuestions();
@@ -1607,9 +1457,6 @@
                 closeSettings();
             }
         });
-    </script>
-</body>
-</html>
     </script>
 </body>
 </html>
