@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Riemann-Thomann Persönlichkeitstest</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -534,6 +535,25 @@
             transform: translateY(-2px);
         }
 
+        .download-btn {
+            background: #e67e22;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            margin-left: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: #d35400;
+            transform: translateY(-2px);
+        }
+
 
 
 
@@ -808,6 +828,7 @@
 
             <button class="restart-btn" onclick="restartTest()">Test wiederholen</button>
             <button class="share-btn" onclick="shareReport()">📤 Bericht teilen</button>
+            <button class="download-btn" onclick="downloadPDF()">💾 PDF herunterladen</button>
         </div>
 
         <div class="navigation" id="navigation">
@@ -1794,6 +1815,192 @@
                 if (shareBtn) {
                     shareBtn.textContent = '📤 Bericht teilen';
                     shareBtn.disabled = false;
+                }
+            }
+        }
+
+        async function downloadPDF() {
+            try {
+                // Zeige Ladeindikator
+                const downloadBtn = document.querySelector('.download-btn');
+                const originalText = downloadBtn.textContent;
+                downloadBtn.textContent = '💾 PDF wird erstellt...';
+                downloadBtn.disabled = true;
+
+                // Hole die aktuellen Scores
+                const scores = {};
+                scores[1] = parseFloat(document.getElementById('scoreDistanz').textContent);
+                scores[2] = parseFloat(document.getElementById('scoreNaehe').textContent);
+                scores[3] = parseFloat(document.getElementById('scoreDauer').textContent);
+                scores[4] = parseFloat(document.getElementById('scoreWechsel').textContent);
+
+                // Bestimme dominanten Typ
+                const typeScores = [
+                    { type: 'Distanz', score: scores[1] },
+                    { type: 'Nähe', score: scores[2] },
+                    { type: 'Dauer', score: scores[3] },
+                    { type: 'Wechsel', score: scores[4] }
+                ].sort((a, b) => b.score - a.score);
+
+                // Erstelle das Diagramm als PNG
+                const chartContainer = document.querySelector('.chart-container');
+                const chartCanvas = await html2canvas(chartContainer, {
+                    scale: 2.0,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+
+                // Erstelle PDF mit jsPDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                
+                // PDF Einstellungen
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const margin = 20;
+                const contentWidth = pageWidth - (2 * margin);
+                let yPosition = margin;
+
+                // Titel
+                pdf.setFontSize(24);
+                pdf.setTextColor(52, 152, 219);
+                pdf.text('Riemann-Thomann Persönlichkeitstest', pageWidth / 2, yPosition, { align: 'center' });
+                yPosition += 15;
+
+                pdf.setFontSize(16);
+                pdf.setTextColor(44, 62, 80);
+                pdf.text('Persönlichkeitsprofil', pageWidth / 2, yPosition, { align: 'center' });
+                yPosition += 25;
+
+                // Diagramm
+                const chartWidth = 120;
+                const chartHeight = 120;
+                const chartX = (pageWidth - chartWidth) / 2;
+                
+                pdf.addImage(chartCanvas.toDataURL('image/png'), 'PNG', chartX, yPosition, chartWidth, chartHeight);
+                yPosition += chartHeight + 20;
+
+                // Scores Grid
+                pdf.setFontSize(14);
+                pdf.setTextColor(52, 152, 219);
+                pdf.text('Ihre Bewertungen:', margin, yPosition);
+                yPosition += 10;
+
+                const scoreBoxWidth = 35;
+                const scoreBoxHeight = 20;
+                const scoreSpacing = 5;
+                const totalScoreWidth = (scoreBoxWidth * 4) + (scoreSpacing * 3);
+                const scoreStartX = (pageWidth - totalScoreWidth) / 2;
+
+                const scoreLabels = ['Distanz', 'Nähe', 'Dauer', 'Wechsel'];
+                const scoreValues = [scores[1], scores[2], scores[3], scores[4]];
+
+                for (let i = 0; i < 4; i++) {
+                    const x = scoreStartX + (i * (scoreBoxWidth + scoreSpacing));
+                    
+                    // Score Box
+                    pdf.setFillColor(52, 152, 219);
+                    pdf.rect(x, yPosition, scoreBoxWidth, scoreBoxHeight, 'F');
+                    
+                    // Score Label
+                    pdf.setFontSize(8);
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.text(scoreLabels[i], x + scoreBoxWidth/2, yPosition + 5, { align: 'center' });
+                    
+                    // Score Value
+                    pdf.setFontSize(12);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text(scoreValues[i].toFixed(1), x + scoreBoxWidth/2, yPosition + 15, { align: 'center' });
+                }
+                yPosition += scoreBoxHeight + 20;
+
+                // Dominanter Typ
+                const dominantType = typeScores[0];
+                pdf.setFillColor(232, 245, 232);
+                pdf.rect(margin, yPosition, contentWidth, 30, 'F');
+                
+                pdf.setFontSize(14);
+                pdf.setTextColor(39, 174, 96);
+                pdf.setFont(undefined, 'bold');
+                pdf.text(`Ihr dominanter Typ: ${dominantType.type}`, margin + 5, yPosition + 10);
+                
+                pdf.setFontSize(10);
+                pdf.setTextColor(39, 174, 96);
+                pdf.text(`${dominantType.score.toFixed(1)} Punkte`, pageWidth - margin - 5, yPosition + 10, { align: 'right' });
+                
+                pdf.setFontSize(10);
+                pdf.setTextColor(51, 51, 51);
+                pdf.setFont(undefined, 'normal');
+                const dominantDesc = typeDescriptions[dominantType.type].general;
+                const dominantLines = pdf.splitTextToSize(dominantDesc, contentWidth - 10);
+                pdf.text(dominantLines, margin + 5, yPosition + 20);
+                yPosition += 35 + (dominantLines.length * 4);
+
+                // Alle Typen
+                pdf.setFontSize(14);
+                pdf.setTextColor(44, 62, 80);
+                pdf.setFont(undefined, 'bold');
+                pdf.text('Alle Persönlichkeitstypen:', margin, yPosition);
+                yPosition += 10;
+
+                for (let i = 0; i < typeScores.length; i++) {
+                    const typeData = typeScores[i];
+                    const typeInfo = typeDescriptions[typeData.type];
+                    
+                    // Prüfe ob neue Seite benötigt
+                    if (yPosition > pageHeight - 60) {
+                        pdf.addPage();
+                        yPosition = margin;
+                    }
+
+                    // Typ Header
+                    pdf.setFillColor(248, 249, 250);
+                    pdf.rect(margin, yPosition, contentWidth, 15, 'F');
+                    
+                    pdf.setFontSize(12);
+                    pdf.setTextColor(52, 152, 219);
+                    pdf.setFont(undefined, 'bold');
+                    const typeTitle = `${typeData.type}${i === 0 ? ' (Dominant)' : ''}`;
+                    pdf.text(typeTitle, margin + 5, yPosition + 8);
+                    
+                    pdf.setFontSize(10);
+                    pdf.text(`${typeData.score.toFixed(1)} Punkte`, pageWidth - margin - 5, yPosition + 8, { align: 'right' });
+                    yPosition += 15;
+
+                    // Typ Beschreibung
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(102, 102, 102);
+                    pdf.setFont(undefined, 'normal');
+                    const descLines = pdf.splitTextToSize(typeInfo.general, contentWidth - 10);
+                    pdf.text(descLines, margin + 5, yPosition);
+                    yPosition += descLines.length * 4 + 10;
+                }
+
+                // Footer
+                pdf.setFontSize(10);
+                pdf.setTextColor(102, 102, 102);
+                pdf.text(`Erstellt am: ${new Date().toLocaleDateString('de-DE')}`, margin, pageHeight - 15);
+                pdf.text('Riemann-Thomann Persönlichkeitstest - Carmen Michaelis', pageWidth - margin, pageHeight - 15, { align: 'right' });
+
+                // PDF herunterladen
+                const timestamp = new Date().toISOString().slice(0, 10);
+                const filename = `Riemann-Thomann-Test_${timestamp}.pdf`;
+                pdf.save(filename);
+
+                // Reset Button
+                downloadBtn.textContent = originalText;
+                downloadBtn.disabled = false;
+
+            } catch (error) {
+                console.error('Fehler beim Erstellen der PDF:', error);
+                alert('Fehler beim Erstellen der PDF. Bitte versuchen Sie es erneut.');
+                
+                // Reset Button
+                const downloadBtn = document.querySelector('.download-btn');
+                if (downloadBtn) {
+                    downloadBtn.textContent = '💾 PDF herunterladen';
+                    downloadBtn.disabled = false;
                 }
             }
         }
