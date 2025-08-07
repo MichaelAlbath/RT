@@ -101,6 +101,7 @@
             padding: 30px 20px;
             max-height: 60vh;
             overflow-y: auto;
+            scroll-behavior: smooth;
         }
 
         .question {
@@ -1096,6 +1097,9 @@
             document.querySelectorAll('input[type="radio"]').forEach(input => {
                 input.addEventListener('change', updateProgress);
             });
+
+            // Add scroll event listener for seamless scrolling
+            setupSeamlessScrolling();
         }
 
         function updateProgress() {
@@ -1783,7 +1787,8 @@ Share API: ${!!navigator.share}
 Mobile: ${/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)}
 Safari: ${/Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)}
 iOS: ${/iPhone|iPad|iPod/.test(navigator.userAgent)}
-URL: ${reportUrl.substring(0, 50)}...
+Blob URL: ${reportUrl.substring(0, 50)}...
+Share Strategy: Text + Current URL
                 `.trim();
                 
                 console.log(debugInfo);
@@ -1798,25 +1803,38 @@ URL: ${reportUrl.substring(0, 50)}...
                 const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
                 const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
                 
-                // Versuche den systemeigenen Teilen-Dialog zu öffnen
+                // Versuche den systemeigenen Teilen-Dialog zu öffnen (ohne Blob-URL)
                 if (navigator.share) {
                     console.log('Share API ist verfügbar, versuche zu teilen...');
                     
-                    // Safari-spezifische Share-Daten
+                    // Erstelle Share-Text statt Blob-URL
+                    const shareText = `
+Riemann-Thomann Persönlichkeitstest
+
+Mein Persönlichkeitsprofil:
+${typeScores[0].type}: ${typeScores[0].score.toFixed(1)} Punkte (Dominant)
+Distanz: ${scores[1].toFixed(1)} Punkte
+Nähe: ${scores[2].toFixed(1)} Punkte
+Dauer: ${scores[3].toFixed(1)} Punkte
+Wechsel: ${scores[4].toFixed(1)} Punkte
+
+Erstellt am: ${new Date().toLocaleDateString('de-DE')}
+                    `.trim();
+                    
+                    // Safari-spezifische Share-Daten (ohne URL)
                     let shareData;
                     if (isSafari && isIOS) {
-                        // Safari iOS: Vereinfachte Share-Daten
+                        // Safari iOS: Nur Text (keine URL)
                         shareData = {
                             title: 'Riemann-Thomann Test',
-                            text: `${typeScores[0].type}: ${typeScores[0].score.toFixed(1)} Punkte`,
-                            url: reportUrl
+                            text: shareText
                         };
                     } else {
-                        // Andere Browser: Vollständige Share-Daten
+                        // Andere Browser: Text und aktuelle Seite als URL
                         shareData = {
                             title: 'Riemann-Thomann Persönlichkeitstest',
-                            text: `Mein Persönlichkeitsprofil: ${typeScores[0].type} (${typeScores[0].score.toFixed(1)} Punkte)`,
-                            url: reportUrl
+                            text: shareText,
+                            url: window.location.href
                         };
                     }
                     
@@ -1836,10 +1854,10 @@ URL: ${reportUrl.substring(0, 50)}...
                             return; // Benutzer hat abgebrochen, keine Fallback-Aktion
                         }
                         
-                        // Fallback: Kopiere URL in Zwischenablage
+                        // Fallback: Kopiere Text in Zwischenablage
                         try {
-                            await navigator.clipboard.writeText(reportUrl);
-                            alert('Share-Dialog konnte nicht geöffnet werden.\n\nBericht-URL wurde in die Zwischenablage kopiert!');
+                            await navigator.clipboard.writeText(shareText);
+                            alert('Share-Dialog konnte nicht geöffnet werden.\n\nTestergebnisse wurden in die Zwischenablage kopiert!');
                         } catch (clipboardError) {
                             console.log('Clipboard Fehler:', clipboardError);
                             // Letzter Fallback: Download der HTML-Datei
@@ -1902,6 +1920,77 @@ URL: ${reportUrl.substring(0, 50)}...
             link.click();
             document.body.removeChild(link);
             alert('Bericht wurde als HTML-Datei heruntergeladen!');
+        }
+
+        function setupSeamlessScrolling() {
+            const questionsContainer = document.getElementById('questionsContainer');
+            let isScrolling = false;
+            let scrollTimeout;
+
+            questionsContainer.addEventListener('scroll', function(e) {
+                if (isScrolling) return;
+                
+                const container = e.target;
+                const scrollTop = container.scrollTop;
+                const scrollHeight = container.scrollHeight;
+                const clientHeight = container.clientHeight;
+                
+                // Prüfe ob am oberen oder unteren Ende
+                const isAtTop = scrollTop <= 0;
+                const isAtBottom = scrollTop + clientHeight >= scrollHeight - 5; // 5px Toleranz
+                
+                if (isAtTop || isAtBottom) {
+                    isScrolling = true;
+                    
+                    // Verzögerung um zu verhindern, dass zu oft gescrollt wird
+                    clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(() => {
+                        isScrolling = false;
+                    }, 100);
+                    
+                    // Scroll die gesamte Seite
+                    const scrollDirection = isAtTop ? -1 : 1;
+                    const scrollAmount = 100; // 100px pro Scroll
+                    
+                    window.scrollBy({
+                        top: scrollDirection * scrollAmount,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+
+            // Touch-Scroll für mobile Geräte
+            let touchStartY = 0;
+            let touchEndY = 0;
+
+            questionsContainer.addEventListener('touchstart', function(e) {
+                touchStartY = e.touches[0].clientY;
+            }, { passive: true });
+
+            questionsContainer.addEventListener('touchend', function(e) {
+                touchEndY = e.changedTouches[0].clientY;
+                const touchDiff = touchStartY - touchEndY;
+                
+                // Prüfe ob Touch-Scroll am Ende der Fragenliste
+                const container = questionsContainer;
+                const scrollTop = container.scrollTop;
+                const scrollHeight = container.scrollHeight;
+                const clientHeight = container.clientHeight;
+                
+                const isAtTop = scrollTop <= 0 && touchDiff < 0; // Nach oben scrollen am oberen Ende
+                const isAtBottom = scrollTop + clientHeight >= scrollHeight - 5 && touchDiff > 0; // Nach unten scrollen am unteren Ende
+                
+                if (isAtTop || isAtBottom) {
+                    // Scroll die gesamte Seite
+                    const scrollDirection = isAtTop ? -1 : 1;
+                    const scrollAmount = 150; // Etwas mehr für Touch
+                    
+                    window.scrollBy({
+                        top: scrollDirection * scrollAmount,
+                        behavior: 'smooth'
+                    });
+                }
+            }, { passive: true });
         }
 
         async function downloadPDF() {
