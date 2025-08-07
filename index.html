@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Riemann-Thomann Persönlichkeitstest</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -516,9 +515,7 @@
             transform: translateY(-2px);
         }
 
-
-
-        .html-btn {
+        .share-btn {
             background: #9b59b6;
             color: white;
             padding: 15px 30px;
@@ -532,10 +529,14 @@
             transition: all 0.3s ease;
         }
 
-        .html-btn:hover {
+        .share-btn:hover {
             background: #8e44ad;
             transform: translateY(-2px);
         }
+
+
+
+
 
         /* Modal Styles */
         .modal {
@@ -806,7 +807,7 @@
             </div>
 
             <button class="restart-btn" onclick="restartTest()">Test wiederholen</button>
-            <button class="html-btn" onclick="generateHTML()">🌐 Als HTML senden</button>
+            <button class="share-btn" onclick="shareReport()">📤 Bericht teilen</button>
         </div>
 
         <div class="navigation" id="navigation">
@@ -1515,39 +1516,13 @@
             applyPreset('standard');
         }
 
-            
-
-        function isStandardWeights() {
-            return pointValues[3] === 1.00 && 
-                   pointValues[2] === 0.67 && 
-                   pointValues[1] === 0.33 && 
-                   pointValues[0] === 0.00;
-        }
-
-        function togglePersonalityType(headerElement) {
-            const contentElement = headerElement.nextElementSibling;
-            const iconElement = headerElement.querySelector('.toggle-icon');
-            
-            if (contentElement.classList.contains('active')) {
-                contentElement.classList.remove('active');
-                headerElement.classList.remove('active');
-                iconElement.textContent = '▶';
-            } else {
-                contentElement.classList.add('active');
-                headerElement.classList.add('active');
-                iconElement.textContent = '▼';
-            }
-        }
-
-
-
-        async function generateHTML() {
+        async function shareReport() {
             try {
                 // Zeige Ladeindikator
-                const htmlBtn = document.querySelector('.html-btn');
-                const originalText = htmlBtn.textContent;
-                htmlBtn.textContent = '🔄 HTML wird erstellt...';
-                htmlBtn.disabled = true;
+                const shareBtn = document.querySelector('.share-btn');
+                const originalText = shareBtn.textContent;
+                shareBtn.textContent = '📤 Bericht wird erstellt...';
+                shareBtn.disabled = true;
 
                 // Hole die aktuellen Scores
                 const scores = {};
@@ -1574,36 +1549,14 @@
                 
                 const chartImgData = chartCanvas.toDataURL('image/jpeg', 0.8);
 
-                // Lade das Logo als Base64 JPG
-                let logoData = '';
-                try {
-                    const response = await fetch('logo.png');
-                    const blob = await response.blob();
-                    const reader = new FileReader();
-                    
-                    logoData = await new Promise((resolve) => {
-                        reader.onload = () => resolve(reader.result);
-                        reader.readAsDataURL(blob);
-                    });
-                } catch (error) {
-                    console.warn('Logo konnte nicht geladen werden:', error);
-                    // Fallback: Verwende ein einfaches SVG-Logo
-                    logoData = 'data:image/svg+xml;base64,' + btoa(`
-                        <svg width="60" height="30" xmlns="http://www.w3.org/2000/svg">
-                            <rect width="60" height="30" fill="#3498db" rx="5"/>
-                            <text x="30" y="20" text-anchor="middle" fill="white" font-family="Arial" font-size="10" font-weight="bold">CM</text>
-                        </svg>
-                    `);
-                }
-
-                // Erstelle eine einzige HTML-Datei mit beiden Seiten
-                const combinedHTML = `
+                // Erstelle eine kompakte HTML-Datei für das Teilen
+                const reportHTML = `
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Riemann-Thomann Persönlichkeitstest</title>
+    <title>Riemann-Thomann Persönlichkeitstest - Ergebnisse</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -1612,526 +1565,264 @@
             background: #f5f5f5;
             color: #333;
         }
-        .page {
+        .container {
             max-width: 800px;
-            margin: 0 auto 40px auto;
+            margin: 0 auto;
             background: white;
-            padding: 40px;
+            padding: 30px;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            page-break-after: always;
-        }
-        .page:last-child {
-            page-break-after: avoid;
         }
         .header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
             padding-bottom: 20px;
             border-bottom: 2px solid #3498db;
         }
         .header h1 {
             color: #3498db;
-            font-size: 28px;
+            font-size: 24px;
             margin-bottom: 10px;
         }
         .header h2 {
             color: #2c3e50;
-            font-size: 20px;
+            font-size: 18px;
             margin: 0;
         }
         .chart-section {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
         .chart-container {
             background: #e8e8e8;
-            padding: 30px;
-            border-radius: 15px;
-            margin-bottom: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
         }
         .chart-container img {
             max-width: 100%;
             height: auto;
         }
-        .scores-section {
-            margin-bottom: 40px;
-        }
         .scores-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            margin-top: 20px;
+            gap: 10px;
+            margin-bottom: 30px;
         }
         .score-item {
             background: #3498db;
             color: white;
-            padding: 20px;
-            border-radius: 10px;
+            padding: 15px;
+            border-radius: 8px;
             text-align: center;
         }
         .score-label {
-            font-size: 14px;
+            font-size: 12px;
             opacity: 0.9;
             margin-bottom: 5px;
         }
         .score-value {
-            font-size: 24px;
+            font-size: 18px;
             font-weight: bold;
         }
         .dominant-type {
             background: #e8f5e8;
-            padding: 25px;
-            border-radius: 15px;
-            border-left: 5px solid #27ae60;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #27ae60;
+            margin-bottom: 30px;
         }
         .dominant-type h3 {
             color: #27ae60;
-            margin-bottom: 15px;
-            font-size: 20px;
+            margin-bottom: 10px;
+            font-size: 18px;
         }
         .dominant-type .score-badge {
             background: #27ae60;
             color: white;
-            padding: 5px 15px;
-            border-radius: 15px;
-            font-size: 14px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 12px;
             float: right;
         }
-        .type-section {
-            margin-bottom: 40px;
+        .type-summary {
+            margin-bottom: 20px;
         }
-        .type-card {
+        .type-item {
             background: #f8f9fa;
-            padding: 25px;
-            border-radius: 15px;
-            border-left: 5px solid #3498db;
-            margin-bottom: 25px;
-        }
-        .type-card.dominant {
-            background: #e8f5e8;
-            border-left-color: #27ae60;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #3498db;
+            margin-bottom: 10px;
         }
         .type-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
         .type-name {
             color: #3498db;
-            font-size: 22px;
+            font-size: 16px;
             font-weight: bold;
-        }
-        .type-card.dominant .type-name {
-            color: #27ae60;
         }
         .type-score {
             background: #3498db;
             color: white;
-            padding: 8px 15px;
-            border-radius: 15px;
-            font-size: 14px;
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 12px;
             font-weight: bold;
         }
-        .type-card.dominant .type-score {
-            background: #27ae60;
-        }
-        .type-content h4 {
-            color: #2c3e50;
-            font-size: 16px;
-            margin-bottom: 10px;
-            margin-top: 20px;
-        }
-        .type-content p {
+        .type-description {
             font-size: 14px;
-            line-height: 1.6;
-            margin-bottom: 15px;
-            color: #333;
-        }
-        .type-content .role {
-            font-weight: bold;
-            color: #e67e22;
+            line-height: 1.4;
+            color: #666;
         }
         .footer {
             text-align: center;
-            margin-top: 40px;
+            margin-top: 30px;
             padding-top: 20px;
             border-top: 1px solid #ddd;
             color: #666;
             font-size: 12px;
         }
-        .page-number {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 14px;
-            color: #666;
-        }
-        @media print {
-            .page {
-                page-break-after: always;
-                margin-bottom: 0;
-            }
-            .page:last-child {
-                page-break-after: avoid;
-            }
-        }
     </style>
 </head>
 <body>
-    <!-- Seite 1: Diagramm und Scores -->
-    <div class="page">
+    <div class="container">
         <div class="header">
             <h1>Riemann-Thomann Persönlichkeitstest</h1>
-            <h2>Persönlichkeitsprofil - Seite 1</h2>
+            <h2>Persönlichkeitsprofil</h2>
         </div>
 
         <div class="chart-section">
-            <h3 style="color: #2c3e50; font-size: 22px; margin-bottom: 20px;">Ihr Persönlichkeitsprofil:</h3>
+            <h3 style="color: #2c3e50; font-size: 18px; margin-bottom: 15px;">Ihr Persönlichkeitsprofil:</h3>
             <div class="chart-container">
-                <img src="${chartImgData}" alt="Persönlichkeitsprofil Diagramm" style="width: 400px; height: 400px;">
+                <img src="${chartImgData}" alt="Persönlichkeitsprofil Diagramm" style="width: 300px; height: 300px;">
             </div>
         </div>
 
-        <div class="scores-section">
-            <h3 style="color: #2c3e50; font-size: 22px; margin-bottom: 20px;">Ihre Punktzahlen:</h3>
-            <div class="scores-grid">
-                <div class="score-item">
-                    <div class="score-label">Distanz</div>
-                    <div class="score-value">${scores[1].toFixed(1)}</div>
-                </div>
-                <div class="score-item">
-                    <div class="score-label">Nähe</div>
-                    <div class="score-value">${scores[2].toFixed(1)}</div>
-                </div>
-                <div class="score-item">
-                    <div class="score-label">Dauer</div>
-                    <div class="score-value">${scores[3].toFixed(1)}</div>
-                </div>
-                <div class="score-item">
-                    <div class="score-label">Wechsel</div>
-                    <div class="score-value">${scores[4].toFixed(1)}</div>
-                </div>
+        <div class="scores-grid">
+            <div class="score-item">
+                <div class="score-label">Distanz</div>
+                <div class="score-value">${scores[1].toFixed(1)}</div>
+            </div>
+            <div class="score-item">
+                <div class="score-label">Nähe</div>
+                <div class="score-value">${scores[2].toFixed(1)}</div>
+            </div>
+            <div class="score-item">
+                <div class="score-label">Dauer</div>
+                <div class="score-value">${scores[3].toFixed(1)}</div>
+            </div>
+            <div class="score-item">
+                <div class="score-label">Wechsel</div>
+                <div class="score-value">${scores[4].toFixed(1)}</div>
             </div>
         </div>
 
         <div class="dominant-type">
             <h3>Ihr dominanter Typ: ${typeScores[0].type} <span class="score-badge">${typeScores[0].score.toFixed(1)} Punkte</span></h3>
-            <p style="font-size: 16px; line-height: 1.6; color: #333;">${typeDescriptions[typeScores[0].type].general}</p>
+            <p style="font-size: 14px; line-height: 1.5; color: #333;">${typeDescriptions[typeScores[0].type].general}</p>
         </div>
 
-        <div class="page-number">Seite 1 von 2</div>
-
-        <div class="footer">
-            <p>Erstellt am: ${new Date().toLocaleDateString('de-DE')}</p>
-            <p style="margin-bottom: 15px;">Riemann-Thomann Persönlichkeitstest - Carmen Michaelis</p>
-            <img src="${logoData}" alt="Logo" style="width: 60px; height: auto; margin: 0 auto; display: block;">
-        </div>
-    </div>
-
-    <!-- Seite 2: Vollständige Texte aller Typen -->
-    <div class="page">
-        <div class="header">
-            <h1>Riemann-Thomann Persönlichkeitstest</h1>
-            <h2>Detaillierte Persönlichkeitsbeschreibungen - Seite 2</h2>
-        </div>
-
-        ${typeScores.map((typeData, index) => {
-            const typeInfo = typeDescriptions[typeData.type];
-            const isDominant = index === 0;
-            return `
-                <div class="type-section">
-                    <div class="type-card ${isDominant ? 'dominant' : ''}">
+        <div class="type-summary">
+            <h3 style="color: #2c3e50; font-size: 18px; margin-bottom: 15px;">Alle Persönlichkeitstypen:</h3>
+            ${typeScores.map((typeData, index) => {
+                const typeInfo = typeDescriptions[typeData.type];
+                return `
+                    <div class="type-item">
                         <div class="type-header">
-                            <div class="type-name">${typeData.type}${isDominant ? ' (Dominant)' : ''}</div>
+                            <div class="type-name">${typeData.type}${index === 0 ? ' (Dominant)' : ''}</div>
                             <div class="type-score">${typeData.score.toFixed(1)} Punkte</div>
                         </div>
-                        <div class="type-content">
-                            <h4>Allgemeine Beschreibung:</h4>
-                            <p>${typeInfo.general}</p>
-                            
-                            <h4>Als Mitarbeiter:</h4>
-                            <p>${typeInfo.employee}</p>
-                            
-                            <h4>Als Führungskraft:</h4>
-                            <p>${typeInfo.leader}</p>
-                            
-                            <h4>Typische Rollen:</h4>
-                            <p class="role">${typeInfo.role}</p>
-                        </div>
+                        <div class="type-description">${typeInfo.general}</div>
                     </div>
-                </div>
-            `;
-        }).join('')}
-
-        <div class="page-number">Seite 2 von 2</div>
+                `;
+            }).join('')}
+        </div>
 
         <div class="footer">
             <p>Erstellt am: ${new Date().toLocaleDateString('de-DE')}</p>
-            <p style="margin-bottom: 15px;">Riemann-Thomann Persönlichkeitstest - Carmen Michaelis</p>
-            <img src="${logoData}" alt="Logo" style="width: 60px; height: auto; margin: 0 auto; display: block;">
+            <p>Riemann-Thomann Persönlichkeitstest - Carmen Michaelis</p>
         </div>
     </div>
 </body>
 </html>`;
 
-                // Erstelle Blob-URL für die kombinierte HTML-Datei
-                const combinedBlob = new Blob([combinedHTML], { type: 'text/html' });
-                const combinedUrl = URL.createObjectURL(combinedBlob);
+                // Erstelle Blob-URL für die HTML-Datei
+                const reportBlob = new Blob([reportHTML], { type: 'text/html' });
+                const reportUrl = URL.createObjectURL(reportBlob);
 
-                // Zeige Erfolgsmeldung
-                htmlBtn.textContent = '✅ HTML erstellt!';
-                
-                // Versuche direkt den Teilen-Dialog zu öffnen
+                // Versuche den systemeigenen Teilen-Dialog zu öffnen
                 if (navigator.share && navigator.canShare) {
-                    // Prüfe ob das Teilen unterstützt wird
                     const shareData = {
                         title: 'Riemann-Thomann Persönlichkeitstest',
                         text: 'Mein Persönlichkeitsprofil',
-                        url: combinedUrl
+                        url: reportUrl
                     };
                     
                     if (navigator.canShare(shareData)) {
-                        navigator.share(shareData).catch((error) => {
-                            console.log('Teilen fehlgeschlagen:', error);
-                            // Fallback: Zeige Teilen-Optionen
-                            showShareOptions(combinedUrl);
-                        });
+                        await navigator.share(shareData);
                     } else {
-                        // Fallback: Zeige Teilen-Optionen
-                        showShareOptions(combinedUrl);
+                        // Fallback: Kopiere URL in Zwischenablage
+                        await navigator.clipboard.writeText(reportUrl);
+                        alert('Bericht-URL wurde in die Zwischenablage kopiert!');
                     }
                 } else {
-                    // Fallback: Zeige Teilen-Optionen
-                    showShareOptions(combinedUrl);
+                    // Fallback: Kopiere URL in Zwischenablage
+                    await navigator.clipboard.writeText(reportUrl);
+                    alert('Bericht-URL wurde in die Zwischenablage kopiert!');
                 }
-                
-                // Reset Button nach kurzer Verzögerung
+
+                // Reset Button
+                shareBtn.textContent = originalText;
+                shareBtn.disabled = false;
+
+                // Bereinige nach kurzer Verzögerung
                 setTimeout(() => {
-                    htmlBtn.textContent = originalText;
-                    htmlBtn.disabled = false;
-                    URL.revokeObjectURL(combinedUrl);
-                }, 2000);
+                    URL.revokeObjectURL(reportUrl);
+                }, 5000);
 
             } catch (error) {
-                console.error('Fehler beim HTML-Erstellen:', error);
-                const htmlBtn = document.querySelector('.html-btn');
-                htmlBtn.textContent = '❌ Fehler beim HTML-Erstellen';
-                setTimeout(() => {
-                    htmlBtn.textContent = '🌐 Als HTML senden';
-                    htmlBtn.disabled = false;
-                }, 3000);
-            }
-        }
-
-        function showShareOptions(url) {
-            // Erstelle einen benutzerdefinierten Teilen-Dialog
-            const shareModal = document.createElement('div');
-            shareModal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 10000;
-                animation: fadeIn 0.3s ease;
-            `;
-
-            const shareContent = document.createElement('div');
-            shareContent.style.cssText = `
-                background: white;
-                border-radius: 15px;
-                padding: 30px;
-                max-width: 400px;
-                width: 90%;
-                text-align: center;
-                box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            `;
-
-            shareContent.innerHTML = `
-                <h3 style="color: #3498db; margin-bottom: 20px; font-size: 20px;">Ergebnisse teilen</h3>
-                <p style="margin-bottom: 25px; color: #666;">Wählen Sie eine Option zum Teilen Ihrer Ergebnisse:</p>
-                
-                <div style="display: flex; flex-direction: column; gap: 15px;">
-                    <button onclick="downloadHTML('${url}')" style="
-                        background: #3498db;
-                        color: white;
-                        border: none;
-                        padding: 15px 20px;
-                        border-radius: 10px;
-                        font-size: 16px;
-                        cursor: pointer;
-                        transition: background 0.3s ease;
-                    " onmouseover="this.style.background='#2980b9'" onmouseout="this.style.background='#3498db'">
-                        📥 Als HTML-Datei herunterladen
-                    </button>
-                    
-                    <button onclick="downloadZIP('${url}')" style="
-                        background: #f39c12;
-                        color: white;
-                        border: none;
-                        padding: 15px 20px;
-                        border-radius: 10px;
-                        font-size: 16px;
-                        cursor: pointer;
-                        transition: background 0.3s ease;
-                    " onmouseover="this.style.background='#e67e22'" onmouseout="this.style.background='#f39c12'">
-                        📦 Als ZIP-Datei herunterladen
-                    </button>
-                    
-                    <button onclick="openInNewTab('${url}')" style="
-                        background: #27ae60;
-                        color: white;
-                        border: none;
-                        padding: 15px 20px;
-                        border-radius: 10px;
-                        font-size: 16px;
-                        cursor: pointer;
-                        transition: background 0.3s ease;
-                    " onmouseover="this.style.background='#229954'" onmouseout="this.style.background='#27ae60'">
-                        🌐 In neuem Tab öffnen
-                    </button>
-                    
-                    <button onclick="copyToClipboard('${url}')" style="
-                        background: #9b59b6;
-                        color: white;
-                        border: none;
-                        padding: 15px 20px;
-                        border-radius: 10px;
-                        font-size: 16px;
-                        cursor: pointer;
-                        transition: background 0.3s ease;
-                    " onmouseover="this.style.background='#8e44ad'" onmouseout="this.style.background='#9b59b6'">
-                        📋 Link kopieren
-                    </button>
-                    
-                    <button onclick="closeShareModal()" style="
-                        background: #e74c3c;
-                        color: white;
-                        border: none;
-                        padding: 15px 20px;
-                        border-radius: 10px;
-                        font-size: 16px;
-                        cursor: pointer;
-                        transition: background 0.3s ease;
-                    " onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#e74c3c'">
-                        ❌ Abbrechen
-                    </button>
-                </div>
-            `;
-
-            shareModal.appendChild(shareContent);
-            document.body.appendChild(shareModal);
-
-            // Schließen beim Klick außerhalb
-            shareModal.addEventListener('click', (e) => {
-                if (e.target === shareModal) {
-                    closeShareModal();
-                }
-            });
-        }
-
-        async function downloadZIP(url) {
-            try {
-                // Zeige Ladeindikator
-                const zipBtn = document.querySelector('button[onclick*="downloadZIP"]');
-                const originalText = zipBtn.textContent;
-                zipBtn.textContent = '📦 ZIP wird erstellt...';
-                zipBtn.disabled = true;
-
-                // Lade die HTML-Datei
-                const response = await fetch(url);
-                const htmlContent = await response.text();
-
-                // Erstelle ZIP-Datei
-                const zip = new JSZip();
-                
-                // Füge HTML-Datei hinzu
-                zip.file('Riemann-Thomann_Test.html', htmlContent);
-                
-                // Füge README-Datei hinzu
-                const readmeContent = `Riemann-Thomann Persönlichkeitstest - Ergebnisse
-
-Diese ZIP-Datei enthält Ihre persönlichen Testergebnisse.
-
-Dateien:
-- Riemann-Thomann_Test.html: Ihre vollständigen Ergebnisse mit Diagramm und Beschreibungen
-
-Öffnen Sie die HTML-Datei in einem Webbrowser, um Ihre Ergebnisse anzuzeigen.
-
-Erstellt am: ${new Date().toLocaleDateString('de-DE')}
-© Carmen Michaelis`;
-
-                zip.file('README.txt', readmeContent);
-
-                // Generiere ZIP-Datei
-                const zipBlob = await zip.generateAsync({type: 'blob'});
-                
-                // Erstelle Download-Link
-                const downloadLink = document.createElement('a');
-                downloadLink.href = URL.createObjectURL(zipBlob);
-                downloadLink.download = `Riemann-Thomann_Test_${new Date().toISOString().split('T')[0]}.zip`;
-                document.body.appendChild(downloadLink);
-                downloadLink.click();
-                document.body.removeChild(downloadLink);
-                
-                // Bereinige
-                URL.revokeObjectURL(downloadLink.href);
+                console.error('Fehler beim Teilen des Berichts:', error);
+                alert('Fehler beim Teilen des Berichts. Bitte versuchen Sie es erneut.');
                 
                 // Reset Button
-                zipBtn.textContent = originalText;
-                zipBtn.disabled = false;
-                
-                closeShareModal();
-                
-            } catch (error) {
-                console.error('Fehler beim ZIP-Erstellen:', error);
-                alert('Fehler beim Erstellen der ZIP-Datei. Bitte versuchen Sie es erneut.');
-                
-                // Reset Button
-                const zipBtn = document.querySelector('button[onclick*="downloadZIP"]');
-                if (zipBtn) {
-                    zipBtn.textContent = '📦 Als ZIP-Datei herunterladen';
-                    zipBtn.disabled = false;
+                const shareBtn = document.querySelector('.share-btn');
+                if (shareBtn) {
+                    shareBtn.textContent = '📤 Bericht teilen';
+                    shareBtn.disabled = false;
                 }
             }
         }
 
-        function downloadHTML(url) {
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `Riemann-Thomann_Test_${new Date().toISOString().split('T')[0]}.html`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            closeShareModal();
+        function isStandardWeights() {
+            return pointValues[3] === 1.00 && 
+                   pointValues[2] === 0.67 && 
+                   pointValues[1] === 0.33 && 
+                   pointValues[0] === 0.00;
         }
 
-        function openInNewTab(url) {
-            window.open(url, '_blank');
-            closeShareModal();
-        }
-
-        function copyToClipboard(url) {
-            navigator.clipboard.writeText(url).then(() => {
-                alert('Link wurde in die Zwischenablage kopiert!');
-                closeShareModal();
-            }).catch(() => {
-                alert('Link konnte nicht kopiert werden.');
-                closeShareModal();
-            });
-        }
-
-        function closeShareModal() {
-            const modal = document.querySelector('div[style*="z-index: 10000"]');
-            if (modal) {
-                modal.remove();
+        function togglePersonalityType(headerElement) {
+            const contentElement = headerElement.nextElementSibling;
+            const iconElement = headerElement.querySelector('.toggle-icon');
+            
+            if (contentElement.classList.contains('active')) {
+                contentElement.classList.remove('active');
+                headerElement.classList.remove('active');
+                iconElement.textContent = '▶';
+            } else {
+                contentElement.classList.add('active');
+                headerElement.classList.add('active');
+                iconElement.textContent = '▼';
             }
         }
+
+
+
+
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
