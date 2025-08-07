@@ -1776,14 +1776,22 @@
                 const reportBlob = new Blob([reportHTML], { type: 'text/html' });
                 const reportUrl = URL.createObjectURL(reportBlob);
 
-                // Debug-Informationen
-                console.log('=== SHARE DEBUG ===');
-                console.log('navigator.share verfügbar:', !!navigator.share);
-                console.log('User Agent:', navigator.userAgent);
-                console.log('Ist Mobile:', /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
-                console.log('Ist Safari:', /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent));
-                console.log('Ist iOS:', /iPhone|iPad|iPod/.test(navigator.userAgent));
-                console.log('Report URL:', reportUrl);
+                // Debug-Informationen (auch als Alert sichtbar)
+                const debugInfo = `
+=== SHARE DEBUG ===
+Share API: ${!!navigator.share}
+Mobile: ${/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)}
+Safari: ${/Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)}
+iOS: ${/iPhone|iPad|iPod/.test(navigator.userAgent)}
+URL: ${reportUrl.substring(0, 50)}...
+                `.trim();
+                
+                console.log(debugInfo);
+                
+                // Zeige Debug-Info als Alert (für mobile Debugging)
+                if (confirm('Debug-Info anzeigen?\n\nOK = Debug anzeigen\nAbbrechen = Direkt teilen')) {
+                    alert(debugInfo);
+                }
                 
                 // Prüfe ob wir auf einem mobilen Gerät sind
                 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -1941,39 +1949,39 @@
                 const contentWidth = pageWidth - (2 * margin);
 
                 // SEITE 1: Titel und Übersicht
-                let yPosition = 50;
+                let yPosition = 40;
 
                 // Haupttitel
-                pdf.setFontSize(28);
+                pdf.setFontSize(26);
                 pdf.setTextColor(52, 152, 219);
                 pdf.setFont(undefined, 'bold');
                 pdf.text('Riemann-Thomann', pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 12;
+                yPosition += 10;
 
-                pdf.setFontSize(20);
+                pdf.setFontSize(18);
                 pdf.setTextColor(44, 62, 80);
                 pdf.text('Persönlichkeitstest', pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 25;
+                yPosition += 20;
 
                 // Untertitel
-                pdf.setFontSize(14);
+                pdf.setFontSize(12);
                 pdf.setTextColor(102, 102, 102);
                 pdf.setFont(undefined, 'normal');
                 pdf.text('Ihr persönliches Persönlichkeitsprofil', pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 30;
+                yPosition += 25;
 
-                // Diagramm
-                const chartWidth = 140;
-                const chartHeight = 140;
+                // Diagramm (größer und besser proportioniert)
+                const chartWidth = 160;
+                const chartHeight = 160;
                 const chartX = (pageWidth - chartWidth) / 2;
                 
                 pdf.addImage(chartCanvas.toDataURL('image/png'), 'PNG', chartX, yPosition, chartWidth, chartHeight);
-                yPosition += chartHeight + 25;
+                yPosition += chartHeight + 20;
 
-                // Scores Grid
-                const scoreBoxWidth = 40;
-                const scoreBoxHeight = 25;
-                const scoreSpacing = 8;
+                // Scores Grid (höher positioniert)
+                const scoreBoxWidth = 42;
+                const scoreBoxHeight = 28;
+                const scoreSpacing = 6;
                 const totalScoreWidth = (scoreBoxWidth * 4) + (scoreSpacing * 3);
                 const scoreStartX = (pageWidth - totalScoreWidth) / 2;
 
@@ -1988,29 +1996,29 @@
                     pdf.rect(x, yPosition, scoreBoxWidth, scoreBoxHeight, 'F');
                     
                     // Score Label
-                    pdf.setFontSize(9);
+                    pdf.setFontSize(10);
                     pdf.setTextColor(255, 255, 255);
-                    pdf.text(scoreLabels[i], x + scoreBoxWidth/2, yPosition + 6, { align: 'center' });
+                    pdf.text(scoreLabels[i], x + scoreBoxWidth/2, yPosition + 7, { align: 'center' });
                     
                     // Score Value
-                    pdf.setFontSize(14);
+                    pdf.setFontSize(16);
                     pdf.setFont(undefined, 'bold');
-                    pdf.text(scoreValues[i].toFixed(1), x + scoreBoxWidth/2, yPosition + 18, { align: 'center' });
+                    pdf.text(scoreValues[i].toFixed(1), x + scoreBoxWidth/2, yPosition + 20, { align: 'center' });
                 }
-                yPosition += scoreBoxHeight + 20;
+                yPosition += scoreBoxHeight + 15;
 
-                // Dominanter Typ
+                // Dominanter Typ (kompakter)
                 const dominantType = typeScores[0];
                 pdf.setFillColor(232, 245, 232);
-                pdf.rect(margin, yPosition, contentWidth, 20, 'F');
+                pdf.rect(margin, yPosition, contentWidth, 18, 'F');
                 
-                pdf.setFontSize(14);
+                pdf.setFontSize(13);
                 pdf.setTextColor(39, 174, 96);
                 pdf.setFont(undefined, 'bold');
-                pdf.text(`Ihr dominanter Typ: ${dominantType.type}`, margin + 8, yPosition + 12);
+                pdf.text(`Ihr dominanter Typ: ${dominantType.type}`, margin + 8, yPosition + 11);
                 
-                pdf.setFontSize(12);
-                pdf.text(`${dominantType.score.toFixed(1)} Punkte`, pageWidth - margin - 8, yPosition + 12, { align: 'right' });
+                pdf.setFontSize(11);
+                pdf.text(`${dominantType.score.toFixed(1)} Punkte`, pageWidth - margin - 8, yPosition + 11, { align: 'right' });
 
                 // Footer Seite 1
                 pdf.setFontSize(10);
