@@ -1776,37 +1776,74 @@
                 const reportBlob = new Blob([reportHTML], { type: 'text/html' });
                 const reportUrl = URL.createObjectURL(reportBlob);
 
+                // Debug-Informationen
+                console.log('=== SHARE DEBUG ===');
+                console.log('navigator.share verfügbar:', !!navigator.share);
+                console.log('User Agent:', navigator.userAgent);
+                console.log('Ist Mobile:', /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+                console.log('Ist Safari:', /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent));
+                console.log('Ist iOS:', /iPhone|iPad|iPod/.test(navigator.userAgent));
+                console.log('Report URL:', reportUrl);
+                
                 // Prüfe ob wir auf einem mobilen Gerät sind
                 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+                const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
                 
-                // Versuche den systemeigenen Teilen-Dialog zu öffnen (nur auf mobilen Geräten)
-                if (navigator.share && isMobile) {
-                    const shareData = {
-                        title: 'Riemann-Thomann Persönlichkeitstest',
-                        text: `Mein Persönlichkeitsprofil: ${typeScores[0].type} (${typeScores[0].score.toFixed(1)} Punkte)`,
-                        url: reportUrl
-                    };
+                // Versuche den systemeigenen Teilen-Dialog zu öffnen
+                if (navigator.share) {
+                    console.log('Share API ist verfügbar, versuche zu teilen...');
+                    
+                    // Safari-spezifische Share-Daten
+                    let shareData;
+                    if (isSafari && isIOS) {
+                        // Safari iOS: Vereinfachte Share-Daten
+                        shareData = {
+                            title: 'Riemann-Thomann Test',
+                            text: `${typeScores[0].type}: ${typeScores[0].score.toFixed(1)} Punkte`,
+                            url: reportUrl
+                        };
+                    } else {
+                        // Andere Browser: Vollständige Share-Daten
+                        shareData = {
+                            title: 'Riemann-Thomann Persönlichkeitstest',
+                            text: `Mein Persönlichkeitsprofil: ${typeScores[0].type} (${typeScores[0].score.toFixed(1)} Punkte)`,
+                            url: reportUrl
+                        };
+                    }
+                    
+                    console.log('Share Data:', shareData);
                     
                     try {
-                        await navigator.share(shareData);
-                        console.log('Share API erfolgreich aufgerufen');
+                        const result = await navigator.share(shareData);
+                        console.log('Share API erfolgreich aufgerufen, Ergebnis:', result);
                     } catch (error) {
                         console.log('Share API Fehler:', error);
+                        console.log('Fehler-Name:', error.name);
+                        console.log('Fehler-Message:', error.message);
+                        
+                        // Spezielle Behandlung für Safari iOS
+                        if (isSafari && isIOS && error.name === 'AbortError') {
+                            console.log('Safari iOS: Benutzer hat Share abgebrochen');
+                            return; // Benutzer hat abgebrochen, keine Fallback-Aktion
+                        }
+                        
                         // Fallback: Kopiere URL in Zwischenablage
                         try {
                             await navigator.clipboard.writeText(reportUrl);
-                            alert('Bericht-URL wurde in die Zwischenablage kopiert!');
+                            alert('Share-Dialog konnte nicht geöffnet werden.\n\nBericht-URL wurde in die Zwischenablage kopiert!');
                         } catch (clipboardError) {
+                            console.log('Clipboard Fehler:', clipboardError);
                             // Letzter Fallback: Download der HTML-Datei
                             downloadHTMLFile(reportUrl);
                         }
                     }
                 } else {
-                    // Desktop oder Browser ohne Share API
-                    console.log('Share API nicht verfügbar oder Desktop-Browser erkannt');
+                    console.log('Share API nicht verfügbar');
                     
                     // Zeige Auswahl-Dialog
                     const choice = confirm(
+                        'Share API nicht verfügbar.\n\n' +
                         'Wie möchten Sie den Bericht teilen?\n\n' +
                         'OK = In Zwischenablage kopieren\n' +
                         'Abbrechen = Als HTML-Datei herunterladen'
