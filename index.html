@@ -1846,50 +1846,94 @@
                 // PDF-Datei erstellen
                 const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
                 
-                // PDF herunterladen
-                const pdfUrl = URL.createObjectURL(pdfBlob);
-                const link = document.createElement('a');
-                link.href = pdfUrl;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                // Safari Mobile: PDF in neuem Tab öffnen und dann Share-Menü aufrufen
+                const isSafariMobile = /Safari/.test(navigator.userAgent) && 
+                                     !/Chrome/.test(navigator.userAgent) && 
+                                     /iPhone|iPad|iPod/.test(navigator.userAgent);
                 
-                // Cleanup PDF URL
-                setTimeout(() => {
-                    URL.revokeObjectURL(pdfUrl);
-                }, 1000);
-
-                // Reset Button
-                downloadBtn.textContent = originalText;
-                downloadBtn.disabled = false;
-
-                // Nach Download: Share-Dialog mit PDF anzeigen
-                setTimeout(async () => {
-                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-                        console.log('Share API mit PDF-Datei verfügbar, zeige Share-Dialog...');
-                        
-                        const shareData = {
-                            title: 'Riemann-Thomann Persönlichkeitstest',
-                            text: `Mein Persönlichkeitsprofil: ${typeScores[0].type} (${typeScores[0].score.toFixed(1)} Punkte)`,
-                            files: [pdfFile]
-                        };
-                        
-                        try {
-                            await navigator.share(shareData);
-                            console.log('PDF erfolgreich geteilt');
-                        } catch (error) {
-                            console.log('Share PDF Fehler:', error);
-                            if (error.name !== 'AbortError') {
-                                alert('PDF wurde heruntergeladen. Share-Dialog konnte nicht geöffnet werden.');
+                if (isSafariMobile) {
+                    console.log('Safari Mobile erkannt - öffne PDF in neuem Tab');
+                    
+                    // PDF in neuem Tab öffnen
+                    const pdfUrl = URL.createObjectURL(pdfBlob);
+                    const newWindow = window.open(pdfUrl, '_blank');
+                    
+                    // Reset Button
+                    downloadBtn.textContent = originalText;
+                    downloadBtn.disabled = false;
+                    
+                    // Nach kurzer Verzögerung: Share-Menü aufrufen
+                    setTimeout(async () => {
+                        if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                            console.log('Share API verfügbar - rufe Share-Menü auf');
+                            
+                            const shareData = {
+                                title: 'Riemann-Thomann Persönlichkeitstest',
+                                text: `Mein Persönlichkeitsprofil: ${typeScores[0].type} (${typeScores[0].score.toFixed(1)} Punkte)`,
+                                files: [pdfFile]
+                            };
+                            
+                            try {
+                                await navigator.share(shareData);
+                                console.log('Share-Menü erfolgreich aufgerufen');
+                            } catch (error) {
+                                console.log('Share-Menü Fehler:', error);
+                                if (error.name !== 'AbortError') {
+                                    alert('PDF wurde geöffnet. Share-Menü konnte nicht aufgerufen werden.');
+                                }
                             }
+                        } else {
+                            console.log('Share API nicht verfügbar');
+                            alert('PDF wurde in Safari geöffnet. Sie können das Teilen-Menü manuell über das Safari-Menü aufrufen.');
                         }
-                    } else {
-                        console.log('Share API mit PDF-Dateien nicht verfügbar');
-                        // Zeige Bestätigung
-                        alert(`PDF wurde erfolgreich heruntergeladen: ${filename}\n\nSie können die PDF-Datei jetzt in anderen Apps teilen.`);
-                    }
-                }, 500); // Kurze Verzögerung nach Download
+                    }, 1000); // 1 Sekunde Verzögerung für Safari
+                    
+                } else {
+                    // Andere Browser: Normaler Download
+                    const pdfUrl = URL.createObjectURL(pdfBlob);
+                    const link = document.createElement('a');
+                    link.href = pdfUrl;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Cleanup PDF URL
+                    setTimeout(() => {
+                        URL.revokeObjectURL(pdfUrl);
+                    }, 1000);
+
+                    // Reset Button
+                    downloadBtn.textContent = originalText;
+                    downloadBtn.disabled = false;
+
+                    // Nach Download: Share-Dialog mit PDF anzeigen
+                    setTimeout(async () => {
+                        if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                            console.log('Share API mit PDF-Datei verfügbar, zeige Share-Dialog...');
+                            
+                            const shareData = {
+                                title: 'Riemann-Thomann Persönlichkeitstest',
+                                text: `Mein Persönlichkeitsprofil: ${typeScores[0].type} (${typeScores[0].score.toFixed(1)} Punkte)`,
+                                files: [pdfFile]
+                            };
+                            
+                            try {
+                                await navigator.share(shareData);
+                                console.log('PDF erfolgreich geteilt');
+                            } catch (error) {
+                                console.log('Share PDF Fehler:', error);
+                                if (error.name !== 'AbortError') {
+                                    alert('PDF wurde heruntergeladen. Share-Dialog konnte nicht geöffnet werden.');
+                                }
+                            }
+                        } else {
+                            console.log('Share API mit PDF-Dateien nicht verfügbar');
+                            // Zeige Bestätigung
+                            alert(`PDF wurde erfolgreich heruntergeladen: ${filename}\n\nSie können die PDF-Datei jetzt in anderen Apps teilen.`);
+                        }
+                    }, 500); // Kurze Verzögerung nach Download
+                }
 
             } catch (error) {
                 console.error('Fehler beim Erstellen der PDF:', error);
