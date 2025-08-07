@@ -1777,10 +1777,8 @@
 </html>`;
 
                 // Erstelle Blob-URL für die HTML-Datei
-                // Erstelle Blob-URL für die HTML-Datei (nur für Download-Fallback)
-                let reportUrl = null;
                 const reportBlob = new Blob([reportHTML], { type: 'text/html' });
-                reportUrl = URL.createObjectURL(reportBlob);
+                const reportUrl = URL.createObjectURL(reportBlob);
 
                 // Debug-Informationen (auch als Alert sichtbar)
                 const debugInfo = `
@@ -1789,8 +1787,7 @@ Share API: ${!!navigator.share}
 Mobile: ${/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)}
 Safari: ${/Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)}
 iOS: ${/iPhone|iPad|iPod/.test(navigator.userAgent)}
-Share Strategy: HTML File via Share API
-File Name: Riemann-Thomann-Test_${new Date().toISOString().slice(0, 10)}.html
+URL: ${reportUrl.substring(0, 50)}...
                 `.trim();
                 
                 console.log(debugInfo);
@@ -1805,168 +1802,55 @@ File Name: Riemann-Thomann-Test_${new Date().toISOString().slice(0, 10)}.html
                 const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
                 const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
                 
-                // HTML-Datei so speichern wie sie angezeigt wird
-                const currentResultsHTML = document.getElementById('results').innerHTML;
-                const fullHTML = `
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Riemann-Thomann Persönlichkeitstest - Ergebnisse</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-            min-height: 100vh;
-            padding: 10px;
-            color: #333;
-        }
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        .header {
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
-        }
-        .header h1 {
-            font-size: 1.2em;
-            margin-bottom: 8px;
-        }
-        .results {
-            padding: 30px 20px;
-            text-align: center;
-        }
-        .visualization-container {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin: 20px 0;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        .chart-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 500px;
-            width: 100%;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        .riemann-chart {
-            width: 100%;
-            max-width: 700px;
-            height: 500px;
-        }
-        .score-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 10px;
-            margin: 30px 0;
-        }
-        .score-item {
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-            color: white;
-            padding: 6px;
-            border-radius: 8px;
-            text-align: center;
-        }
-        .personality-type {
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-            color: white;
-            border-radius: 15px;
-            margin: 20px 0;
-            overflow: hidden;
-        }
-        .personality-type-header {
-            padding: 20px 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .personality-type-content {
-            padding: 0 25px 25px;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
-            color: #666;
-            font-size: 12px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Riemann-Thomann Persönlichkeitstest</h1>
-            <p>Persönlichkeitsprofil</p>
-        </div>
-        <div class="results">
-            ${currentResultsHTML}
-        </div>
-        <div class="footer">
-            <p>Erstellt am: ${new Date().toLocaleDateString('de-DE')}</p>
-            <p>Riemann-Thomann Persönlichkeitstest - Carmen Michaelis</p>
-        </div>
-    </div>
-</body>
-</html>`;
-
-                // HTML-Datei als Blob erstellen
-                const htmlBlob = new Blob([fullHTML], { type: 'text/html' });
-                const htmlFile = new File([htmlBlob], `Riemann-Thomann-Test_${new Date().toISOString().slice(0, 10)}.html`, { type: 'text/html' });
-                
-                // Share-Dialog mit Datei erzwingen
-                console.log('Share API ist verfügbar, erzwinge Share-Dialog mit Datei...');
-                
-                const shareData = {
-                    title: 'Riemann-Thomann Persönlichkeitstest',
-                    text: `Mein Persönlichkeitsprofil: ${typeScores[0].type} (${typeScores[0].score.toFixed(1)} Punkte)`,
-                    files: [htmlFile]
-                };
-                
-                console.log('Share Data:', shareData);
-                
-                try {
-                    const result = await navigator.share(shareData);
-                    console.log('Share API erfolgreich aufgerufen, Ergebnis:', result);
-                } catch (error) {
-                    console.log('Share API Fehler:', error);
-                    console.log('Fehler-Name:', error.name);
-                    console.log('Fehler-Message:', error.message);
+                // Versuche den systemeigenen Teilen-Dialog zu öffnen
+                if (navigator.share) {
+                    console.log('Share API ist verfügbar, versuche zu teilen...');
                     
-                    // Erzwinge Share-Dialog auch bei Fehlern
-                    if (error.name === 'AbortError') {
-                        console.log('Benutzer hat Share abgebrochen');
-                        return;
+                    // Safari-spezifische Share-Daten
+                    let shareData;
+                    if (isSafari && isIOS) {
+                        // Safari iOS: Vereinfachte Share-Daten
+                        shareData = {
+                            title: 'Riemann-Thomann Test',
+                            text: `${typeScores[0].type}: ${typeScores[0].score.toFixed(1)} Punkte`,
+                            url: reportUrl
+                        };
+                    } else {
+                        // Andere Browser: Vollständige Share-Daten
+                        shareData = {
+                            title: 'Riemann-Thomann Persönlichkeitstest',
+                            text: `Mein Persönlichkeitsprofil: ${typeScores[0].type} (${typeScores[0].score.toFixed(1)} Punkte)`,
+                            url: reportUrl
+                        };
                     }
                     
-                    // Fallback: Download der HTML-Datei
+                    console.log('Share Data:', shareData);
+                    
                     try {
-                        const downloadUrl = URL.createObjectURL(htmlFile);
-                        const link = document.createElement('a');
-                        link.href = downloadUrl;
-                        link.download = htmlFile.name;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(downloadUrl);
-                        alert('Share-Dialog konnte nicht geöffnet werden.\n\nHTML-Datei wurde heruntergeladen!');
-                    } catch (downloadError) {
-                        console.log('Download Fehler:', downloadError);
-                        alert('Fehler beim Teilen. Bitte versuchen Sie es erneut.');
+                        const result = await navigator.share(shareData);
+                        console.log('Share API erfolgreich aufgerufen, Ergebnis:', result);
+                    } catch (error) {
+                        console.log('Share API Fehler:', error);
+                        console.log('Fehler-Name:', error.name);
+                        console.log('Fehler-Message:', error.message);
+                        
+                        // Spezielle Behandlung für Safari iOS
+                        if (isSafari && isIOS && error.name === 'AbortError') {
+                            console.log('Safari iOS: Benutzer hat Share abgebrochen');
+                            return; // Benutzer hat abgebrochen, keine Fallback-Aktion
+                        }
+                        
+                        // Fallback: Kopiere URL in Zwischenablage
+                        try {
+                            await navigator.clipboard.writeText(reportUrl);
+                            alert('Share-Dialog konnte nicht geöffnet werden.\n\nBericht-URL wurde in die Zwischenablage kopiert!');
+                        } catch (clipboardError) {
+                            console.log('Clipboard Fehler:', clipboardError);
+                            // Letzter Fallback: Download der HTML-Datei
+                            downloadHTMLFile(reportUrl);
+                        }
                     }
-                }
-            } else {
+                } else {
                     console.log('Share API nicht verfügbar');
                     
                     // Zeige Auswahl-Dialog
@@ -2022,34 +1906,6 @@ File Name: Riemann-Thomann-Test_${new Date().toISOString().slice(0, 10)}.html
             link.click();
             document.body.removeChild(link);
             alert('Bericht wurde als HTML-Datei heruntergeladen!');
-        }
-
-        function showSharedReport(reportId) {
-            // HTML-Report aus localStorage laden
-            const reportHTML = localStorage.getItem('riemannReport');
-            const reportTimestamp = localStorage.getItem('riemannTimestamp');
-            
-            if (reportHTML && reportTimestamp) {
-                // Prüfe ob Report nicht zu alt ist (24 Stunden)
-                const reportAge = Date.now() - parseInt(reportTimestamp);
-                if (reportAge < 24 * 60 * 60 * 1000) {
-                    // Report anzeigen
-                    document.body.innerHTML = reportHTML;
-                    return;
-                }
-            }
-            
-            // Fallback: Zeige Fehlermeldung
-            document.body.innerHTML = `
-                <div style="padding: 20px; text-align: center; font-family: Arial, sans-serif;">
-                    <h2>Report nicht verfügbar</h2>
-                    <p>Der geteilte Report konnte nicht gefunden werden oder ist abgelaufen.</p>
-                    <p>Reports sind 24 Stunden gültig.</p>
-                    <button onclick="window.location.href='./'" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                        Zum Test zurück
-                    </button>
-                </div>
-            `;
         }
 
         function setupSeamlessScrolling() {
@@ -2168,39 +2024,39 @@ File Name: Riemann-Thomann-Test_${new Date().toISOString().slice(0, 10)}.html
                 const contentWidth = pageWidth - (2 * margin);
 
                 // SEITE 1: Titel und Übersicht
-                let yPosition = 35;
+                let yPosition = 40;
 
                 // Haupttitel
-                pdf.setFontSize(24);
+                pdf.setFontSize(26);
                 pdf.setTextColor(52, 152, 219);
                 pdf.setFont(undefined, 'bold');
                 pdf.text('Riemann-Thomann', pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 8;
+                yPosition += 10;
 
-                pdf.setFontSize(16);
+                pdf.setFontSize(18);
                 pdf.setTextColor(44, 62, 80);
                 pdf.text('Persönlichkeitstest', pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 18;
+                yPosition += 20;
 
                 // Untertitel
-                pdf.setFontSize(11);
+                pdf.setFontSize(12);
                 pdf.setTextColor(102, 102, 102);
                 pdf.setFont(undefined, 'normal');
                 pdf.text('Ihr persönliches Persönlichkeitsprofil', pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 20;
+                yPosition += 25;
 
-                // Diagramm (etwas kleiner für mehr Platz)
-                const chartWidth = 150;
-                const chartHeight = 150;
+                // Diagramm (größer und besser proportioniert)
+                const chartWidth = 160;
+                const chartHeight = 160;
                 const chartX = (pageWidth - chartWidth) / 2;
                 
                 pdf.addImage(chartCanvas.toDataURL('image/png'), 'PNG', chartX, yPosition, chartWidth, chartHeight);
-                yPosition += chartHeight + 15;
+                yPosition += chartHeight + 20;
 
-                // Scores Grid (kompakter)
-                const scoreBoxWidth = 40;
-                const scoreBoxHeight = 25;
-                const scoreSpacing = 5;
+                // Scores Grid (höher positioniert)
+                const scoreBoxWidth = 42;
+                const scoreBoxHeight = 28;
+                const scoreSpacing = 6;
                 const totalScoreWidth = (scoreBoxWidth * 4) + (scoreSpacing * 3);
                 const scoreStartX = (pageWidth - totalScoreWidth) / 2;
 
@@ -2215,37 +2071,29 @@ File Name: Riemann-Thomann-Test_${new Date().toISOString().slice(0, 10)}.html
                     pdf.rect(x, yPosition, scoreBoxWidth, scoreBoxHeight, 'F');
                     
                     // Score Label
-                    pdf.setFontSize(9);
+                    pdf.setFontSize(10);
                     pdf.setTextColor(255, 255, 255);
-                    pdf.text(scoreLabels[i], x + scoreBoxWidth/2, yPosition + 6, { align: 'center' });
+                    pdf.text(scoreLabels[i], x + scoreBoxWidth/2, yPosition + 7, { align: 'center' });
                     
                     // Score Value
-                    pdf.setFontSize(14);
+                    pdf.setFontSize(16);
                     pdf.setFont(undefined, 'bold');
-                    pdf.text(scoreValues[i].toFixed(1), x + scoreBoxWidth/2, yPosition + 17, { align: 'center' });
+                    pdf.text(scoreValues[i].toFixed(1), x + scoreBoxWidth/2, yPosition + 20, { align: 'center' });
                 }
-                yPosition += scoreBoxHeight + 12;
+                yPosition += scoreBoxHeight + 15;
 
                 // Dominanter Typ (kompakter)
                 const dominantType = typeScores[0];
                 pdf.setFillColor(232, 245, 232);
-                pdf.rect(margin, yPosition, contentWidth, 16, 'F');
+                pdf.rect(margin, yPosition, contentWidth, 18, 'F');
                 
-                pdf.setFontSize(12);
+                pdf.setFontSize(13);
                 pdf.setTextColor(39, 174, 96);
                 pdf.setFont(undefined, 'bold');
-                pdf.text(`Ihr dominanter Typ: ${dominantType.type}`, margin + 8, yPosition + 10);
+                pdf.text(`Ihr dominanter Typ: ${dominantType.type}`, margin + 8, yPosition + 11);
                 
-                pdf.setFontSize(10);
-                pdf.text(`${dominantType.score.toFixed(1)} Punkte`, pageWidth - margin - 8, yPosition + 10, { align: 'right' });
-
-                // Prüfe ob genug Platz für Footer
-                const footerY = pageHeight - 20;
-                if (yPosition + 20 > footerY) {
-                    // Nicht genug Platz, erstelle neue Seite für Footer
-                    pdf.addPage();
-                    yPosition = margin;
-                }
+                pdf.setFontSize(11);
+                pdf.text(`${dominantType.score.toFixed(1)} Punkte`, pageWidth - margin - 8, yPosition + 11, { align: 'right' });
 
                 // Footer Seite 1
                 pdf.setFontSize(10);
@@ -2371,35 +2219,58 @@ File Name: Riemann-Thomann-Test_${new Date().toISOString().slice(0, 10)}.html
                     pdf.text(`Seite ${3 + i} von ${4 + typeScores.length}`, pageWidth - margin, pageHeight - 15, { align: 'right' });
                 }
 
-                // PDF herunterladen (Safari-kompatibel)
+                // PDF als Blob erstellen für Sharing
+                const pdfBlob = pdf.output('blob');
                 const timestamp = new Date().toISOString().slice(0, 10);
                 const filename = `Riemann-Thomann-Test_${timestamp}.pdf`;
                 
-                // Safari-spezifische Behandlung
-                if (navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')) {
-                    // Safari: Öffne PDF in neuem Tab
-                    const pdfBlob = pdf.output('blob');
-                    const pdfUrl = URL.createObjectURL(pdfBlob);
-                    const link = document.createElement('a');
-                    link.href = pdfUrl;
-                    link.target = '_blank';
-                    link.download = filename;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    
-                    // Cleanup nach kurzer Verzögerung
-                    setTimeout(() => {
-                        URL.revokeObjectURL(pdfUrl);
-                    }, 1000);
-                } else {
-                    // Andere Browser: Direkter Download
-                    pdf.save(filename);
-                }
+                // PDF-Datei erstellen
+                const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
+                
+                // PDF herunterladen
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+                const link = document.createElement('a');
+                link.href = pdfUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Cleanup PDF URL
+                setTimeout(() => {
+                    URL.revokeObjectURL(pdfUrl);
+                }, 1000);
 
                 // Reset Button
                 downloadBtn.textContent = originalText;
                 downloadBtn.disabled = false;
+
+                // Nach Download: Share-Dialog mit PDF anzeigen
+                setTimeout(async () => {
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                        console.log('Share API mit PDF-Datei verfügbar, zeige Share-Dialog...');
+                        
+                        const shareData = {
+                            title: 'Riemann-Thomann Persönlichkeitstest',
+                            text: `Mein Persönlichkeitsprofil: ${typeScores[0].type} (${typeScores[0].score.toFixed(1)} Punkte)`,
+                            files: [pdfFile]
+                        };
+                        
+                        try {
+                            await navigator.share(shareData);
+                            console.log('PDF erfolgreich geteilt');
+                        } catch (error) {
+                            console.log('Share PDF Fehler:', error);
+                            if (error.name !== 'AbortError') {
+                                alert('PDF wurde heruntergeladen. Share-Dialog konnte nicht geöffnet werden.');
+                            }
+                        }
+                    } else {
+                        console.log('Share API mit PDF-Dateien nicht verfügbar');
+                        // Zeige Bestätigung
+                        alert(`PDF wurde erfolgreich heruntergeladen: ${filename}\n\nSie können die PDF-Datei jetzt in anderen Apps teilen.`);
+                    }
+                }, 500); // Kurze Verzögerung nach Download
 
             } catch (error) {
                 console.error('Fehler beim Erstellen der PDF:', error);
@@ -2442,35 +2313,25 @@ File Name: Riemann-Thomann-Test_${new Date().toISOString().slice(0, 10)}.html
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
-            // Prüfe ob ein Report angezeigt werden soll
-            const urlParams = new URLSearchParams(window.location.hash.substring(1));
-            const reportId = urlParams.get('report');
+            // Versuche gespeicherten Fortschritt zu laden
+            const hasProgress = loadProgress();
             
-            if (reportId) {
-                // Report anzeigen
-                showSharedReport(reportId);
-            } else {
-                // Normale App-Initialisierung
-                // Versuche gespeicherten Fortschritt zu laden
-                const hasProgress = loadProgress();
-                
-                if (!hasProgress) {
-                    // Kein gespeicherter Fortschritt, starte neu
-                    initializeMixedQuestions();
-                }
-                
-                loadQuestions();
-                updateProgress();
-                
-                // Add event listeners for real-time updates in settings
-                ['points3', 'points2', 'points1', 'points0'].forEach(id => {
-                    document.addEventListener('input', function(e) {
-                        if (e.target.id === id) {
-                            updateMaxPoints();
-                        }
-                    });
-                });
+            if (!hasProgress) {
+                // Kein gespeicherter Fortschritt, starte neu
+            initializeMixedQuestions();
             }
+            
+            loadQuestions();
+            updateProgress();
+            
+            // Add event listeners for real-time updates in settings
+            ['points3', 'points2', 'points1', 'points0'].forEach(id => {
+                document.addEventListener('input', function(e) {
+                    if (e.target.id === id) {
+                        updateMaxPoints();
+                    }
+                });
+            });
         });
 
         // Close modal when clicking outside
