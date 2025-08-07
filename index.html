@@ -1776,25 +1776,55 @@
                 const reportBlob = new Blob([reportHTML], { type: 'text/html' });
                 const reportUrl = URL.createObjectURL(reportBlob);
 
-                // Versuche den systemeigenen Teilen-Dialog zu öffnen
-                if (navigator.share && navigator.canShare) {
+                // Prüfe ob wir auf einem mobilen Gerät sind
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                
+                // Versuche den systemeigenen Teilen-Dialog zu öffnen (nur auf mobilen Geräten)
+                if (navigator.share && isMobile) {
                     const shareData = {
                         title: 'Riemann-Thomann Persönlichkeitstest',
-                        text: 'Mein Persönlichkeitsprofil',
+                        text: `Mein Persönlichkeitsprofil: ${typeScores[0].type} (${typeScores[0].score.toFixed(1)} Punkte)`,
                         url: reportUrl
                     };
                     
-                    if (navigator.canShare(shareData)) {
+                    try {
                         await navigator.share(shareData);
-                    } else {
+                        console.log('Share API erfolgreich aufgerufen');
+                    } catch (error) {
+                        console.log('Share API Fehler:', error);
                         // Fallback: Kopiere URL in Zwischenablage
-                        await navigator.clipboard.writeText(reportUrl);
-                        alert('Bericht-URL wurde in die Zwischenablage kopiert!');
+                        try {
+                            await navigator.clipboard.writeText(reportUrl);
+                            alert('Bericht-URL wurde in die Zwischenablage kopiert!');
+                        } catch (clipboardError) {
+                            // Letzter Fallback: Download der HTML-Datei
+                            downloadHTMLFile(reportUrl);
+                        }
                     }
                 } else {
-                    // Fallback: Kopiere URL in Zwischenablage
-                    await navigator.clipboard.writeText(reportUrl);
-                    alert('Bericht-URL wurde in die Zwischenablage kopiert!');
+                    // Desktop oder Browser ohne Share API
+                    console.log('Share API nicht verfügbar oder Desktop-Browser erkannt');
+                    
+                    // Zeige Auswahl-Dialog
+                    const choice = confirm(
+                        'Wie möchten Sie den Bericht teilen?\n\n' +
+                        'OK = In Zwischenablage kopieren\n' +
+                        'Abbrechen = Als HTML-Datei herunterladen'
+                    );
+                    
+                    if (choice) {
+                        // Kopiere in Zwischenablage
+                        try {
+                            await navigator.clipboard.writeText(reportUrl);
+                            alert('Bericht-URL wurde in die Zwischenablage kopiert!\n\nSie können den Link jetzt in anderen Apps einfügen.');
+                        } catch (clipboardError) {
+                            console.log('Clipboard Fehler:', clipboardError);
+                            downloadHTMLFile(reportUrl);
+                        }
+                    } else {
+                        // Download HTML-Datei
+                        downloadHTMLFile(reportUrl);
+                    }
                 }
 
                 // Reset Button
@@ -1817,6 +1847,16 @@
                     shareBtn.disabled = false;
                 }
             }
+        }
+
+        function downloadHTMLFile(reportUrl) {
+            const link = document.createElement('a');
+            link.href = reportUrl;
+            link.download = `Riemann-Thomann-Test_${new Date().toISOString().slice(0, 10)}.html`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            alert('Bericht wurde als HTML-Datei heruntergeladen!');
         }
 
         async function downloadPDF() {
@@ -1842,13 +1882,15 @@
                     { type: 'Wechsel', score: scores[4] }
                 ].sort((a, b) => b.score - a.score);
 
-                // Erstelle das Diagramm als PNG
+                // Erstelle das Diagramm als PNG (Safari-optimiert)
                 const chartContainer = document.querySelector('.chart-container');
                 const chartCanvas = await html2canvas(chartContainer, {
                     scale: 2.0,
                     useCORS: true,
                     backgroundColor: '#ffffff',
-                    logging: false
+                    logging: false,
+                    allowTaint: true,
+                    foreignObjectRendering: false
                 });
 
                 // Erstelle PDF mit jsPDF
@@ -1858,38 +1900,43 @@
                 // PDF Einstellungen
                 const pageWidth = pdf.internal.pageSize.getWidth();
                 const pageHeight = pdf.internal.pageSize.getHeight();
-                const margin = 20;
+                const margin = 25;
                 const contentWidth = pageWidth - (2 * margin);
-                let yPosition = margin;
 
-                // Titel
-                pdf.setFontSize(24);
+                // SEITE 1: Titel und Übersicht
+                let yPosition = 50;
+
+                // Haupttitel
+                pdf.setFontSize(28);
                 pdf.setTextColor(52, 152, 219);
-                pdf.text('Riemann-Thomann Persönlichkeitstest', pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 15;
+                pdf.setFont(undefined, 'bold');
+                pdf.text('Riemann-Thomann', pageWidth / 2, yPosition, { align: 'center' });
+                yPosition += 12;
 
-                pdf.setFontSize(16);
+                pdf.setFontSize(20);
                 pdf.setTextColor(44, 62, 80);
-                pdf.text('Persönlichkeitsprofil', pageWidth / 2, yPosition, { align: 'center' });
+                pdf.text('Persönlichkeitstest', pageWidth / 2, yPosition, { align: 'center' });
                 yPosition += 25;
 
+                // Untertitel
+                pdf.setFontSize(14);
+                pdf.setTextColor(102, 102, 102);
+                pdf.setFont(undefined, 'normal');
+                pdf.text('Ihr persönliches Persönlichkeitsprofil', pageWidth / 2, yPosition, { align: 'center' });
+                yPosition += 30;
+
                 // Diagramm
-                const chartWidth = 120;
-                const chartHeight = 120;
+                const chartWidth = 140;
+                const chartHeight = 140;
                 const chartX = (pageWidth - chartWidth) / 2;
                 
                 pdf.addImage(chartCanvas.toDataURL('image/png'), 'PNG', chartX, yPosition, chartWidth, chartHeight);
-                yPosition += chartHeight + 20;
+                yPosition += chartHeight + 25;
 
                 // Scores Grid
-                pdf.setFontSize(14);
-                pdf.setTextColor(52, 152, 219);
-                pdf.text('Ihre Bewertungen:', margin, yPosition);
-                yPosition += 10;
-
-                const scoreBoxWidth = 35;
-                const scoreBoxHeight = 20;
-                const scoreSpacing = 5;
+                const scoreBoxWidth = 40;
+                const scoreBoxHeight = 25;
+                const scoreSpacing = 8;
                 const totalScoreWidth = (scoreBoxWidth * 4) + (scoreSpacing * 3);
                 const scoreStartX = (pageWidth - totalScoreWidth) / 2;
 
@@ -1904,89 +1951,179 @@
                     pdf.rect(x, yPosition, scoreBoxWidth, scoreBoxHeight, 'F');
                     
                     // Score Label
-                    pdf.setFontSize(8);
+                    pdf.setFontSize(9);
                     pdf.setTextColor(255, 255, 255);
-                    pdf.text(scoreLabels[i], x + scoreBoxWidth/2, yPosition + 5, { align: 'center' });
+                    pdf.text(scoreLabels[i], x + scoreBoxWidth/2, yPosition + 6, { align: 'center' });
                     
                     // Score Value
-                    pdf.setFontSize(12);
+                    pdf.setFontSize(14);
                     pdf.setFont(undefined, 'bold');
-                    pdf.text(scoreValues[i].toFixed(1), x + scoreBoxWidth/2, yPosition + 15, { align: 'center' });
+                    pdf.text(scoreValues[i].toFixed(1), x + scoreBoxWidth/2, yPosition + 18, { align: 'center' });
                 }
                 yPosition += scoreBoxHeight + 20;
 
                 // Dominanter Typ
                 const dominantType = typeScores[0];
                 pdf.setFillColor(232, 245, 232);
-                pdf.rect(margin, yPosition, contentWidth, 30, 'F');
+                pdf.rect(margin, yPosition, contentWidth, 20, 'F');
                 
                 pdf.setFontSize(14);
                 pdf.setTextColor(39, 174, 96);
                 pdf.setFont(undefined, 'bold');
-                pdf.text(`Ihr dominanter Typ: ${dominantType.type}`, margin + 5, yPosition + 10);
+                pdf.text(`Ihr dominanter Typ: ${dominantType.type}`, margin + 8, yPosition + 12);
                 
-                pdf.setFontSize(10);
-                pdf.setTextColor(39, 174, 96);
-                pdf.text(`${dominantType.score.toFixed(1)} Punkte`, pageWidth - margin - 5, yPosition + 10, { align: 'right' });
-                
-                pdf.setFontSize(10);
-                pdf.setTextColor(51, 51, 51);
-                pdf.setFont(undefined, 'normal');
-                const dominantDesc = typeDescriptions[dominantType.type].general;
-                const dominantLines = pdf.splitTextToSize(dominantDesc, contentWidth - 10);
-                pdf.text(dominantLines, margin + 5, yPosition + 20);
-                yPosition += 35 + (dominantLines.length * 4);
+                pdf.setFontSize(12);
+                pdf.text(`${dominantType.score.toFixed(1)} Punkte`, pageWidth - margin - 8, yPosition + 12, { align: 'right' });
 
-                // Alle Typen
-                pdf.setFontSize(14);
-                pdf.setTextColor(44, 62, 80);
-                pdf.setFont(undefined, 'bold');
-                pdf.text('Alle Persönlichkeitstypen:', margin, yPosition);
-                yPosition += 10;
-
-                for (let i = 0; i < typeScores.length; i++) {
-                    const typeData = typeScores[i];
-                    const typeInfo = typeDescriptions[typeData.type];
-                    
-                    // Prüfe ob neue Seite benötigt
-                    if (yPosition > pageHeight - 60) {
-                        pdf.addPage();
-                        yPosition = margin;
-                    }
-
-                    // Typ Header
-                    pdf.setFillColor(248, 249, 250);
-                    pdf.rect(margin, yPosition, contentWidth, 15, 'F');
-                    
-                    pdf.setFontSize(12);
-                    pdf.setTextColor(52, 152, 219);
-                    pdf.setFont(undefined, 'bold');
-                    const typeTitle = `${typeData.type}${i === 0 ? ' (Dominant)' : ''}`;
-                    pdf.text(typeTitle, margin + 5, yPosition + 8);
-                    
-                    pdf.setFontSize(10);
-                    pdf.text(`${typeData.score.toFixed(1)} Punkte`, pageWidth - margin - 5, yPosition + 8, { align: 'right' });
-                    yPosition += 15;
-
-                    // Typ Beschreibung
-                    pdf.setFontSize(10);
-                    pdf.setTextColor(102, 102, 102);
-                    pdf.setFont(undefined, 'normal');
-                    const descLines = pdf.splitTextToSize(typeInfo.general, contentWidth - 10);
-                    pdf.text(descLines, margin + 5, yPosition);
-                    yPosition += descLines.length * 4 + 10;
-                }
-
-                // Footer
+                // Footer Seite 1
                 pdf.setFontSize(10);
                 pdf.setTextColor(102, 102, 102);
                 pdf.text(`Erstellt am: ${new Date().toLocaleDateString('de-DE')}`, margin, pageHeight - 15);
                 pdf.text('Riemann-Thomann Persönlichkeitstest - Carmen Michaelis', pageWidth - margin, pageHeight - 15, { align: 'right' });
 
-                // PDF herunterladen
+                // SEITE 2: Inhaltsverzeichnis
+                pdf.addPage();
+                yPosition = 50;
+
+                pdf.setFontSize(20);
+                pdf.setTextColor(52, 152, 219);
+                pdf.setFont(undefined, 'bold');
+                pdf.text('Inhaltsverzeichnis', pageWidth / 2, yPosition, { align: 'center' });
+                yPosition += 30;
+
+                pdf.setFontSize(14);
+                pdf.setTextColor(44, 62, 80);
+                pdf.setFont(undefined, 'bold');
+                pdf.text('Ihre Persönlichkeitstypen:', margin, yPosition);
+                yPosition += 15;
+
+                for (let i = 0; i < typeScores.length; i++) {
+                    const typeData = typeScores[i];
+                    pdf.setFontSize(12);
+                    pdf.setTextColor(52, 152, 219);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text(`${i + 1}. ${typeData.type}`, margin, yPosition);
+                    
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(102, 102, 102);
+                    pdf.setFont(undefined, 'normal');
+                    pdf.text(`${typeData.score.toFixed(1)} Punkte`, pageWidth - margin - 5, yPosition, { align: 'right' });
+                    yPosition += 8;
+                }
+
+                // Footer Seite 2
+                pdf.setFontSize(10);
+                pdf.setTextColor(102, 102, 102);
+                pdf.text(`Seite 2 von ${4 + typeScores.length}`, pageWidth - margin, pageHeight - 15, { align: 'right' });
+
+                // SEITEN 3-6: Jeder Persönlichkeitstyp auf einer eigenen Seite
+                for (let i = 0; i < typeScores.length; i++) {
+                    const typeData = typeScores[i];
+                    const typeInfo = typeDescriptions[typeData.type];
+                    
+                    pdf.addPage();
+                    yPosition = 40;
+
+                    // Typ Header
+                    pdf.setFillColor(52, 152, 219);
+                    pdf.rect(margin, yPosition, contentWidth, 25, 'F');
+                    
+                    pdf.setFontSize(18);
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFont(undefined, 'bold');
+                    const typeTitle = `${typeData.type}${i === 0 ? ' (Dominant)' : ''}`;
+                    pdf.text(typeTitle, margin + 10, yPosition + 16);
+                    
+                    pdf.setFontSize(14);
+                    pdf.text(`${typeData.score.toFixed(1)} Punkte`, pageWidth - margin - 10, yPosition + 16, { align: 'right' });
+                    yPosition += 35;
+
+                    // Allgemeine Beschreibung
+                    pdf.setFontSize(14);
+                    pdf.setTextColor(44, 62, 80);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text('Allgemeine Beschreibung:', margin, yPosition);
+                    yPosition += 8;
+
+                    pdf.setFontSize(11);
+                    pdf.setTextColor(51, 51, 51);
+                    pdf.setFont(undefined, 'normal');
+                    const generalLines = pdf.splitTextToSize(typeInfo.general, contentWidth);
+                    pdf.text(generalLines, margin, yPosition);
+                    yPosition += generalLines.length * 5 + 12;
+
+                    // Als Mitarbeiter
+                    pdf.setFontSize(14);
+                    pdf.setTextColor(44, 62, 80);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text('Als Mitarbeiter:', margin, yPosition);
+                    yPosition += 8;
+
+                    pdf.setFontSize(11);
+                    pdf.setTextColor(51, 51, 51);
+                    pdf.setFont(undefined, 'normal');
+                    const employeeLines = pdf.splitTextToSize(typeInfo.employee, contentWidth);
+                    pdf.text(employeeLines, margin, yPosition);
+                    yPosition += employeeLines.length * 5 + 12;
+
+                    // Als Führungskraft
+                    pdf.setFontSize(14);
+                    pdf.setTextColor(44, 62, 80);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text('Als Führungskraft:', margin, yPosition);
+                    yPosition += 8;
+
+                    pdf.setFontSize(11);
+                    pdf.setTextColor(51, 51, 51);
+                    pdf.setFont(undefined, 'normal');
+                    const leaderLines = pdf.splitTextToSize(typeInfo.leader, contentWidth);
+                    pdf.text(leaderLines, margin, yPosition);
+                    yPosition += leaderLines.length * 5 + 12;
+
+                    // Typische Rollen
+                    pdf.setFontSize(14);
+                    pdf.setTextColor(44, 62, 80);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text('Typische Rollen:', margin, yPosition);
+                    yPosition += 8;
+
+                    pdf.setFontSize(11);
+                    pdf.setTextColor(52, 152, 219);
+                    pdf.setFont(undefined, 'bold');
+                    const roleLines = pdf.splitTextToSize(typeInfo.role, contentWidth);
+                    pdf.text(roleLines, margin, yPosition);
+
+                    // Footer
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(102, 102, 102);
+                    pdf.text(`Seite ${3 + i} von ${4 + typeScores.length}`, pageWidth - margin, pageHeight - 15, { align: 'right' });
+                }
+
+                // PDF herunterladen (Safari-kompatibel)
                 const timestamp = new Date().toISOString().slice(0, 10);
                 const filename = `Riemann-Thomann-Test_${timestamp}.pdf`;
-                pdf.save(filename);
+                
+                // Safari-spezifische Behandlung
+                if (navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')) {
+                    // Safari: Öffne PDF in neuem Tab
+                    const pdfBlob = pdf.output('blob');
+                    const pdfUrl = URL.createObjectURL(pdfBlob);
+                    const link = document.createElement('a');
+                    link.href = pdfUrl;
+                    link.target = '_blank';
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Cleanup nach kurzer Verzögerung
+                    setTimeout(() => {
+                        URL.revokeObjectURL(pdfUrl);
+                    }, 1000);
+                } else {
+                    // Andere Browser: Direkter Download
+                    pdf.save(filename);
+                }
 
                 // Reset Button
                 downloadBtn.textContent = originalText;
