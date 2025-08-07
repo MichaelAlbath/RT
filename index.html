@@ -1878,51 +1878,32 @@
                 const combinedBlob = new Blob([combinedHTML], { type: 'text/html' });
                 const combinedUrl = URL.createObjectURL(combinedBlob);
 
-                // Erstelle Download-Link
-                const downloadLink = document.createElement('a');
-                downloadLink.href = combinedUrl;
-                downloadLink.download = `Riemann-Thomann_Test_${new Date().toISOString().split('T')[0]}.html`;
-                downloadLink.style.display = 'none';
-                document.body.appendChild(downloadLink);
-
-                // Starte Download
-                downloadLink.click();
-
-                // Entferne den Link nach dem Download
-                setTimeout(() => {
-                    document.body.removeChild(downloadLink);
-                    URL.revokeObjectURL(combinedUrl);
-                }, 1000);
-
-                // Zeige Erfolgsmeldung mit Teilen-Option
-                htmlBtn.textContent = '✅ HTML heruntergeladen!';
+                // Zeige Erfolgsmeldung
+                htmlBtn.textContent = '✅ HTML erstellt!';
                 
-                // Zeige Teilen-Dialog nach kurzer Verzögerung
+                // Versuche direkt den Teilen-Dialog zu öffnen
+                if (navigator.share) {
+                    // Native Teilen-API verwenden (falls verfügbar)
+                    navigator.share({
+                        title: 'Riemann-Thomann Persönlichkeitstest',
+                        text: 'Mein Persönlichkeitsprofil',
+                        url: combinedUrl
+                    }).catch((error) => {
+                        console.log('Teilen fehlgeschlagen:', error);
+                        // Fallback: Öffne in neuem Tab
+                        window.open(combinedUrl, '_blank');
+                    });
+                } else {
+                    // Fallback: Öffne in neuem Tab
+                    window.open(combinedUrl, '_blank');
+                }
+                
+                // Reset Button nach kurzer Verzögerung
                 setTimeout(() => {
-                    if (navigator.share) {
-                        // Native Teilen-API verwenden (falls verfügbar)
-                        navigator.share({
-                            title: 'Riemann-Thomann Persönlichkeitstest',
-                            text: 'Mein Persönlichkeitsprofil',
-                            url: combinedUrl
-                        }).catch(() => {
-                            // Fallback: Kopiere URL in Zwischenablage
-                            navigator.clipboard.writeText(combinedUrl).then(() => {
-                                alert('HTML-Datei wurde heruntergeladen! URL wurde in die Zwischenablage kopiert.');
-                            });
-                        });
-                    } else {
-                        // Fallback: Kopiere URL in Zwischenablage
-                        navigator.clipboard.writeText(combinedUrl).then(() => {
-                            alert('HTML-Datei wurde heruntergeladen! URL wurde in die Zwischenablage kopiert.');
-                        }).catch(() => {
-                            alert('HTML-Datei wurde heruntergeladen!');
-                        });
-                    }
-                    
                     htmlBtn.textContent = originalText;
                     htmlBtn.disabled = false;
-                }, 500);
+                    URL.revokeObjectURL(combinedUrl);
+                }, 2000);
 
             } catch (error) {
                 console.error('Fehler beim HTML-Erstellen:', error);
