@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Riemann-Thomann Persönlichkeitstest</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -1882,20 +1883,27 @@
                 htmlBtn.textContent = '✅ HTML erstellt!';
                 
                 // Versuche direkt den Teilen-Dialog zu öffnen
-                if (navigator.share) {
-                    // Native Teilen-API verwenden (falls verfügbar)
-                    navigator.share({
+                if (navigator.share && navigator.canShare) {
+                    // Prüfe ob das Teilen unterstützt wird
+                    const shareData = {
                         title: 'Riemann-Thomann Persönlichkeitstest',
                         text: 'Mein Persönlichkeitsprofil',
                         url: combinedUrl
-                    }).catch((error) => {
-                        console.log('Teilen fehlgeschlagen:', error);
-                        // Fallback: Öffne in neuem Tab
-                        window.open(combinedUrl, '_blank');
-                    });
+                    };
+                    
+                    if (navigator.canShare(shareData)) {
+                        navigator.share(shareData).catch((error) => {
+                            console.log('Teilen fehlgeschlagen:', error);
+                            // Fallback: Zeige Teilen-Optionen
+                            showShareOptions(combinedUrl);
+                        });
+                    } else {
+                        // Fallback: Zeige Teilen-Optionen
+                        showShareOptions(combinedUrl);
+                    }
                 } else {
-                    // Fallback: Öffne in neuem Tab
-                    window.open(combinedUrl, '_blank');
+                    // Fallback: Zeige Teilen-Optionen
+                    showShareOptions(combinedUrl);
                 }
                 
                 // Reset Button nach kurzer Verzögerung
@@ -1913,6 +1921,215 @@
                     htmlBtn.textContent = '🌐 Als HTML senden';
                     htmlBtn.disabled = false;
                 }, 3000);
+            }
+        }
+
+        function showShareOptions(url) {
+            // Erstelle einen benutzerdefinierten Teilen-Dialog
+            const shareModal = document.createElement('div');
+            shareModal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                animation: fadeIn 0.3s ease;
+            `;
+
+            const shareContent = document.createElement('div');
+            shareContent.style.cssText = `
+                background: white;
+                border-radius: 15px;
+                padding: 30px;
+                max-width: 400px;
+                width: 90%;
+                text-align: center;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            `;
+
+            shareContent.innerHTML = `
+                <h3 style="color: #3498db; margin-bottom: 20px; font-size: 20px;">Ergebnisse teilen</h3>
+                <p style="margin-bottom: 25px; color: #666;">Wählen Sie eine Option zum Teilen Ihrer Ergebnisse:</p>
+                
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <button onclick="downloadHTML('${url}')" style="
+                        background: #3498db;
+                        color: white;
+                        border: none;
+                        padding: 15px 20px;
+                        border-radius: 10px;
+                        font-size: 16px;
+                        cursor: pointer;
+                        transition: background 0.3s ease;
+                    " onmouseover="this.style.background='#2980b9'" onmouseout="this.style.background='#3498db'">
+                        📥 Als HTML-Datei herunterladen
+                    </button>
+                    
+                    <button onclick="downloadZIP('${url}')" style="
+                        background: #f39c12;
+                        color: white;
+                        border: none;
+                        padding: 15px 20px;
+                        border-radius: 10px;
+                        font-size: 16px;
+                        cursor: pointer;
+                        transition: background 0.3s ease;
+                    " onmouseover="this.style.background='#e67e22'" onmouseout="this.style.background='#f39c12'">
+                        📦 Als ZIP-Datei herunterladen
+                    </button>
+                    
+                    <button onclick="openInNewTab('${url}')" style="
+                        background: #27ae60;
+                        color: white;
+                        border: none;
+                        padding: 15px 20px;
+                        border-radius: 10px;
+                        font-size: 16px;
+                        cursor: pointer;
+                        transition: background 0.3s ease;
+                    " onmouseover="this.style.background='#229954'" onmouseout="this.style.background='#27ae60'">
+                        🌐 In neuem Tab öffnen
+                    </button>
+                    
+                    <button onclick="copyToClipboard('${url}')" style="
+                        background: #9b59b6;
+                        color: white;
+                        border: none;
+                        padding: 15px 20px;
+                        border-radius: 10px;
+                        font-size: 16px;
+                        cursor: pointer;
+                        transition: background 0.3s ease;
+                    " onmouseover="this.style.background='#8e44ad'" onmouseout="this.style.background='#9b59b6'">
+                        📋 Link kopieren
+                    </button>
+                    
+                    <button onclick="closeShareModal()" style="
+                        background: #e74c3c;
+                        color: white;
+                        border: none;
+                        padding: 15px 20px;
+                        border-radius: 10px;
+                        font-size: 16px;
+                        cursor: pointer;
+                        transition: background 0.3s ease;
+                    " onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#e74c3c'">
+                        ❌ Abbrechen
+                    </button>
+                </div>
+            `;
+
+            shareModal.appendChild(shareContent);
+            document.body.appendChild(shareModal);
+
+            // Schließen beim Klick außerhalb
+            shareModal.addEventListener('click', (e) => {
+                if (e.target === shareModal) {
+                    closeShareModal();
+                }
+            });
+        }
+
+        async function downloadZIP(url) {
+            try {
+                // Zeige Ladeindikator
+                const zipBtn = document.querySelector('button[onclick*="downloadZIP"]');
+                const originalText = zipBtn.textContent;
+                zipBtn.textContent = '📦 ZIP wird erstellt...';
+                zipBtn.disabled = true;
+
+                // Lade die HTML-Datei
+                const response = await fetch(url);
+                const htmlContent = await response.text();
+
+                // Erstelle ZIP-Datei
+                const zip = new JSZip();
+                
+                // Füge HTML-Datei hinzu
+                zip.file('Riemann-Thomann_Test.html', htmlContent);
+                
+                // Füge README-Datei hinzu
+                const readmeContent = `Riemann-Thomann Persönlichkeitstest - Ergebnisse
+
+Diese ZIP-Datei enthält Ihre persönlichen Testergebnisse.
+
+Dateien:
+- Riemann-Thomann_Test.html: Ihre vollständigen Ergebnisse mit Diagramm und Beschreibungen
+
+Öffnen Sie die HTML-Datei in einem Webbrowser, um Ihre Ergebnisse anzuzeigen.
+
+Erstellt am: ${new Date().toLocaleDateString('de-DE')}
+© Carmen Michaelis`;
+
+                zip.file('README.txt', readmeContent);
+
+                // Generiere ZIP-Datei
+                const zipBlob = await zip.generateAsync({type: 'blob'});
+                
+                // Erstelle Download-Link
+                const downloadLink = document.createElement('a');
+                downloadLink.href = URL.createObjectURL(zipBlob);
+                downloadLink.download = `Riemann-Thomann_Test_${new Date().toISOString().split('T')[0]}.zip`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                
+                // Bereinige
+                URL.revokeObjectURL(downloadLink.href);
+                
+                // Reset Button
+                zipBtn.textContent = originalText;
+                zipBtn.disabled = false;
+                
+                closeShareModal();
+                
+            } catch (error) {
+                console.error('Fehler beim ZIP-Erstellen:', error);
+                alert('Fehler beim Erstellen der ZIP-Datei. Bitte versuchen Sie es erneut.');
+                
+                // Reset Button
+                const zipBtn = document.querySelector('button[onclick*="downloadZIP"]');
+                if (zipBtn) {
+                    zipBtn.textContent = '📦 Als ZIP-Datei herunterladen';
+                    zipBtn.disabled = false;
+                }
+            }
+        }
+
+        function downloadHTML(url) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Riemann-Thomann_Test_${new Date().toISOString().split('T')[0]}.html`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            closeShareModal();
+        }
+
+        function openInNewTab(url) {
+            window.open(url, '_blank');
+            closeShareModal();
+        }
+
+        function copyToClipboard(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Link wurde in die Zwischenablage kopiert!');
+                closeShareModal();
+            }).catch(() => {
+                alert('Link konnte nicht kopiert werden.');
+                closeShareModal();
+            });
+        }
+
+        function closeShareModal() {
+            const modal = document.querySelector('div[style*="z-index: 10000"]');
+            if (modal) {
+                modal.remove();
             }
         }
 
