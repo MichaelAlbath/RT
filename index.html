@@ -1789,8 +1789,8 @@ Share API: ${!!navigator.share}
 Mobile: ${/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)}
 Safari: ${/Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)}
 iOS: ${/iPhone|iPad|iPod/.test(navigator.userAgent)}
-Share Strategy: Text only (no Blob URL)
-Current Page: ${window.location.href}
+Share Strategy: HTML via localStorage + URL
+Report URL: ${window.location.origin + window.location.pathname + '#report=' + Date.now()}
                 `.trim();
                 
                 console.log(debugInfo);
@@ -1805,38 +1805,33 @@ Current Page: ${window.location.href}
                 const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
                 const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
                 
-                // Versuche den systemeigenen Teilen-Dialog zu öffnen (ohne Blob-URL)
+                // Versuche den systemeigenen Teilen-Dialog zu öffnen (mit echter HTML-URL)
                 if (navigator.share) {
                     console.log('Share API ist verfügbar, versuche zu teilen...');
                     
-                    // Erstelle Share-Text statt Blob-URL
-                    const shareText = `
-Riemann-Thomann Persönlichkeitstest
-
-Mein Persönlichkeitsprofil:
-${typeScores[0].type}: ${typeScores[0].score.toFixed(1)} Punkte (Dominant)
-Distanz: ${scores[1].toFixed(1)} Punkte
-Nähe: ${scores[2].toFixed(1)} Punkte
-Dauer: ${scores[3].toFixed(1)} Punkte
-Wechsel: ${scores[4].toFixed(1)} Punkte
-
-Erstellt am: ${new Date().toLocaleDateString('de-DE')}
-                    `.trim();
+                    // HTML-Datei in localStorage speichern
+                    localStorage.setItem('riemannReport', reportHTML);
+                    localStorage.setItem('riemannTimestamp', Date.now());
                     
-                    // Safari-spezifische Share-Daten (ohne URL)
+                    // Echte URL für die HTML-Datei erstellen
+                    const reportId = Date.now();
+                    const reportUrl = window.location.origin + window.location.pathname + '#report=' + reportId;
+                    
+                    // Safari-spezifische Share-Daten
                     let shareData;
                     if (isSafari && isIOS) {
-                        // Safari iOS: Nur Text (keine URL)
+                        // Safari iOS: Text und URL
                         shareData = {
                             title: 'Riemann-Thomann Test',
-                            text: shareText
+                            text: `Mein Persönlichkeitsprofil: ${typeScores[0].type} (${typeScores[0].score.toFixed(1)} Punkte)`,
+                            url: reportUrl
                         };
                     } else {
-                        // Andere Browser: Text und aktuelle Seite als URL
+                        // Andere Browser: Text und URL
                         shareData = {
                             title: 'Riemann-Thomann Persönlichkeitstest',
-                            text: shareText,
-                            url: window.location.href
+                            text: `Mein Persönlichkeitsprofil: ${typeScores[0].type} (${typeScores[0].score.toFixed(1)} Punkte)`,
+                            url: reportUrl
                         };
                     }
                     
@@ -1926,6 +1921,34 @@ Erstellt am: ${new Date().toLocaleDateString('de-DE')}
             link.click();
             document.body.removeChild(link);
             alert('Bericht wurde als HTML-Datei heruntergeladen!');
+        }
+
+        function showSharedReport(reportId) {
+            // HTML-Report aus localStorage laden
+            const reportHTML = localStorage.getItem('riemannReport');
+            const reportTimestamp = localStorage.getItem('riemannTimestamp');
+            
+            if (reportHTML && reportTimestamp) {
+                // Prüfe ob Report nicht zu alt ist (24 Stunden)
+                const reportAge = Date.now() - parseInt(reportTimestamp);
+                if (reportAge < 24 * 60 * 60 * 1000) {
+                    // Report anzeigen
+                    document.body.innerHTML = reportHTML;
+                    return;
+                }
+            }
+            
+            // Fallback: Zeige Fehlermeldung
+            document.body.innerHTML = `
+                <div style="padding: 20px; text-align: center; font-family: Arial, sans-serif;">
+                    <h2>Report nicht verfügbar</h2>
+                    <p>Der geteilte Report konnte nicht gefunden werden oder ist abgelaufen.</p>
+                    <p>Reports sind 24 Stunden gültig.</p>
+                    <button onclick="window.location.href='./'" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        Zum Test zurück
+                    </button>
+                </div>
+            `;
         }
 
         function setupSeamlessScrolling() {
@@ -2318,25 +2341,35 @@ Erstellt am: ${new Date().toLocaleDateString('de-DE')}
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
-            // Versuche gespeicherten Fortschritt zu laden
-            const hasProgress = loadProgress();
+            // Prüfe ob ein Report angezeigt werden soll
+            const urlParams = new URLSearchParams(window.location.hash.substring(1));
+            const reportId = urlParams.get('report');
             
-            if (!hasProgress) {
-                // Kein gespeicherter Fortschritt, starte neu
-            initializeMixedQuestions();
-            }
-            
-            loadQuestions();
-            updateProgress();
-            
-            // Add event listeners for real-time updates in settings
-            ['points3', 'points2', 'points1', 'points0'].forEach(id => {
-                document.addEventListener('input', function(e) {
-                    if (e.target.id === id) {
-                        updateMaxPoints();
-                    }
+            if (reportId) {
+                // Report anzeigen
+                showSharedReport(reportId);
+            } else {
+                // Normale App-Initialisierung
+                // Versuche gespeicherten Fortschritt zu laden
+                const hasProgress = loadProgress();
+                
+                if (!hasProgress) {
+                    // Kein gespeicherter Fortschritt, starte neu
+                    initializeMixedQuestions();
+                }
+                
+                loadQuestions();
+                updateProgress();
+                
+                // Add event listeners for real-time updates in settings
+                ['points3', 'points2', 'points1', 'points0'].forEach(id => {
+                    document.addEventListener('input', function(e) {
+                        if (e.target.id === id) {
+                            updateMaxPoints();
+                        }
+                    });
                 });
-            });
+            }
         });
 
         // Close modal when clicking outside
