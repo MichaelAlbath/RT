@@ -1777,8 +1777,10 @@
 </html>`;
 
                 // Erstelle Blob-URL für die HTML-Datei
+                // Erstelle Blob-URL für die HTML-Datei (nur für Download-Fallback)
+                let reportUrl = null;
                 const reportBlob = new Blob([reportHTML], { type: 'text/html' });
-                const reportUrl = URL.createObjectURL(reportBlob);
+                reportUrl = URL.createObjectURL(reportBlob);
 
                 // Debug-Informationen (auch als Alert sichtbar)
                 const debugInfo = `
@@ -1787,8 +1789,8 @@ Share API: ${!!navigator.share}
 Mobile: ${/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)}
 Safari: ${/Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)}
 iOS: ${/iPhone|iPad|iPod/.test(navigator.userAgent)}
-Blob URL: ${reportUrl.substring(0, 50)}...
-Share Strategy: Text + Current URL
+Share Strategy: Text only (no Blob URL)
+Current Page: ${window.location.href}
                 `.trim();
                 
                 console.log(debugInfo);
@@ -1861,7 +1863,11 @@ Erstellt am: ${new Date().toLocaleDateString('de-DE')}
                         } catch (clipboardError) {
                             console.log('Clipboard Fehler:', clipboardError);
                             // Letzter Fallback: Download der HTML-Datei
-                            downloadHTMLFile(reportUrl);
+                            if (reportUrl) {
+                                downloadHTMLFile(reportUrl);
+                            } else {
+                                alert('Fehler beim Teilen. Bitte versuchen Sie es erneut.');
+                            }
                         }
                     }
                 } else {
@@ -2038,39 +2044,39 @@ Erstellt am: ${new Date().toLocaleDateString('de-DE')}
                 const contentWidth = pageWidth - (2 * margin);
 
                 // SEITE 1: Titel und Übersicht
-                let yPosition = 40;
+                let yPosition = 35;
 
                 // Haupttitel
-                pdf.setFontSize(26);
+                pdf.setFontSize(24);
                 pdf.setTextColor(52, 152, 219);
                 pdf.setFont(undefined, 'bold');
                 pdf.text('Riemann-Thomann', pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 10;
+                yPosition += 8;
 
-                pdf.setFontSize(18);
+                pdf.setFontSize(16);
                 pdf.setTextColor(44, 62, 80);
                 pdf.text('Persönlichkeitstest', pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 20;
+                yPosition += 18;
 
                 // Untertitel
-                pdf.setFontSize(12);
+                pdf.setFontSize(11);
                 pdf.setTextColor(102, 102, 102);
                 pdf.setFont(undefined, 'normal');
                 pdf.text('Ihr persönliches Persönlichkeitsprofil', pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 25;
+                yPosition += 20;
 
-                // Diagramm (größer und besser proportioniert)
-                const chartWidth = 160;
-                const chartHeight = 160;
+                // Diagramm (etwas kleiner für mehr Platz)
+                const chartWidth = 150;
+                const chartHeight = 150;
                 const chartX = (pageWidth - chartWidth) / 2;
                 
                 pdf.addImage(chartCanvas.toDataURL('image/png'), 'PNG', chartX, yPosition, chartWidth, chartHeight);
-                yPosition += chartHeight + 20;
+                yPosition += chartHeight + 15;
 
-                // Scores Grid (höher positioniert)
-                const scoreBoxWidth = 42;
-                const scoreBoxHeight = 28;
-                const scoreSpacing = 6;
+                // Scores Grid (kompakter)
+                const scoreBoxWidth = 40;
+                const scoreBoxHeight = 25;
+                const scoreSpacing = 5;
                 const totalScoreWidth = (scoreBoxWidth * 4) + (scoreSpacing * 3);
                 const scoreStartX = (pageWidth - totalScoreWidth) / 2;
 
@@ -2085,29 +2091,37 @@ Erstellt am: ${new Date().toLocaleDateString('de-DE')}
                     pdf.rect(x, yPosition, scoreBoxWidth, scoreBoxHeight, 'F');
                     
                     // Score Label
-                    pdf.setFontSize(10);
+                    pdf.setFontSize(9);
                     pdf.setTextColor(255, 255, 255);
-                    pdf.text(scoreLabels[i], x + scoreBoxWidth/2, yPosition + 7, { align: 'center' });
+                    pdf.text(scoreLabels[i], x + scoreBoxWidth/2, yPosition + 6, { align: 'center' });
                     
                     // Score Value
-                    pdf.setFontSize(16);
+                    pdf.setFontSize(14);
                     pdf.setFont(undefined, 'bold');
-                    pdf.text(scoreValues[i].toFixed(1), x + scoreBoxWidth/2, yPosition + 20, { align: 'center' });
+                    pdf.text(scoreValues[i].toFixed(1), x + scoreBoxWidth/2, yPosition + 17, { align: 'center' });
                 }
-                yPosition += scoreBoxHeight + 15;
+                yPosition += scoreBoxHeight + 12;
 
                 // Dominanter Typ (kompakter)
                 const dominantType = typeScores[0];
                 pdf.setFillColor(232, 245, 232);
-                pdf.rect(margin, yPosition, contentWidth, 18, 'F');
+                pdf.rect(margin, yPosition, contentWidth, 16, 'F');
                 
-                pdf.setFontSize(13);
+                pdf.setFontSize(12);
                 pdf.setTextColor(39, 174, 96);
                 pdf.setFont(undefined, 'bold');
-                pdf.text(`Ihr dominanter Typ: ${dominantType.type}`, margin + 8, yPosition + 11);
+                pdf.text(`Ihr dominanter Typ: ${dominantType.type}`, margin + 8, yPosition + 10);
                 
-                pdf.setFontSize(11);
-                pdf.text(`${dominantType.score.toFixed(1)} Punkte`, pageWidth - margin - 8, yPosition + 11, { align: 'right' });
+                pdf.setFontSize(10);
+                pdf.text(`${dominantType.score.toFixed(1)} Punkte`, pageWidth - margin - 8, yPosition + 10, { align: 'right' });
+
+                // Prüfe ob genug Platz für Footer
+                const footerY = pageHeight - 20;
+                if (yPosition + 20 > footerY) {
+                    // Nicht genug Platz, erstelle neue Seite für Footer
+                    pdf.addPage();
+                    yPosition = margin;
+                }
 
                 // Footer Seite 1
                 pdf.setFontSize(10);
