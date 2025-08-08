@@ -657,6 +657,16 @@
             color: white;
         }
 
+        .save-btn {
+            background: #28a745;
+            color: white;
+            margin-left: 10px;
+        }
+
+        .save-btn:hover {
+            background: #218838;
+        }
+
 
 
         .carmen-note {
@@ -854,6 +864,7 @@
 
             <div class="settings-actions">
                 <button class="settings-btn reset-btn" onclick="resetToDefaults()">Zurücksetzen</button>
+                <button class="settings-btn save-btn" onclick="saveSettingsAndClose()">Speichern</button>
             </div>
             
             <div class="carmen-note">
@@ -1517,10 +1528,30 @@
             }
             updatePointInputs();
             updateMaxPoints();
+            // Speichere neue Punktwerte sofort
+            saveProgress();
         }
 
         function resetToDefaults() {
             applyPreset('standard');
+        }
+
+        function saveSettingsAndClose() {
+            // Werte aus Inputs lesen und in pointValues übernehmen
+            const p3 = parseFloat(document.getElementById('points3').value);
+            const p2 = parseFloat(document.getElementById('points2').value);
+            const p1 = parseFloat(document.getElementById('points1').value);
+            const p0 = parseFloat(document.getElementById('points0').value);
+            
+            if (!isNaN(p3)) pointValues[3] = p3;
+            if (!isNaN(p2)) pointValues[2] = p2;
+            if (!isNaN(p1)) pointValues[1] = p1;
+            if (!isNaN(p0)) pointValues[0] = p0;
+            
+            updatePointInputs();
+            updateMaxPoints();
+            saveProgress();
+            closeSettings();
         }
 
 
@@ -1642,35 +1673,32 @@
                 const margin = 25;
                 const contentWidth = pageWidth - (2 * margin);
 
-                // SEITE 1: Titel und Übersicht
-                let yPosition = 40;
+                // SEITE 1: Titel und Übersicht (noch kleinerer oberer Rand)
+                let yPosition = 22;
 
                 // Haupttitel
                 pdf.setFontSize(26);
                 pdf.setTextColor(52, 152, 219);
                 pdf.setFont(undefined, 'bold');
                 pdf.text('Riemann-Thomann', pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 10;
+                yPosition += 6;
 
-                pdf.setFontSize(18);
-                pdf.setTextColor(44, 62, 80);
-                pdf.text('Persönlichkeitstest', pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 20;
+                // Entfernt: Zweittitel "Persönlichkeitstest"
 
                 // Untertitel
                 pdf.setFontSize(12);
                 pdf.setTextColor(102, 102, 102);
                 pdf.setFont(undefined, 'normal');
                 pdf.text('Ihr persönliches Persönlichkeitsprofil', pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 25;
+                yPosition += 12;
 
-                // Diagramm (größer und besser proportioniert)
-                const chartWidth = 160;
-                const chartHeight = 160;
+                // Diagramm (etwas kleiner, damit Scores höher rücken)
+                const chartWidth = 148;
+                const chartHeight = 148;
                 const chartX = (pageWidth - chartWidth) / 2;
                 
                 pdf.addImage(chartCanvas.toDataURL('image/png'), 'PNG', chartX, yPosition, chartWidth, chartHeight);
-                yPosition += chartHeight + 20;
+                yPosition += chartHeight + 10;
 
                 // Scores Grid (höher positioniert)
                 const scoreBoxWidth = 42;
@@ -1987,11 +2015,19 @@
             loadQuestions();
             updateProgress();
             
-            // Add event listeners for real-time updates in settings
+            // Add event listeners for real-time updates and persistent save in settings
             ['points3', 'points2', 'points1', 'points0'].forEach(id => {
-                document.addEventListener('input', function(e) {
-                    if (e.target.id === id) {
+                const inputEl = document.getElementById(id);
+                if (!inputEl) return;
+                inputEl.addEventListener('input', function() {
+                    const value = parseFloat(inputEl.value);
+                    if (!isNaN(value)) {
+                        const keyMap = { points3: 3, points2: 2, points1: 1, points0: 0 };
+                        const key = keyMap[id];
+                        pointValues[key] = value;
                         updateMaxPoints();
+                        // Fortschritt inkl. Punktwerte sofort speichern
+                        saveProgress();
                     }
                 });
             });
