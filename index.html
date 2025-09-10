@@ -1839,11 +1839,11 @@
                     pdf.text(`${typeData.score.toFixed(1)} Punkte`, pageWidth - margin - 10, yPosition + 16, { align: 'right' });
                     yPosition += 35;
 
-                    // Allgemeine Beschreibung
+                    // Beschreibung
                     pdf.setFontSize(14);
                     pdf.setTextColor(44, 62, 80);
                     pdf.setFont(undefined, 'bold');
-                    pdf.text('Allgemeine Beschreibung:', margin, yPosition);
+                    pdf.text('Beschreibung:', margin, yPosition);
                     yPosition += 8;
 
                     pdf.setFontSize(11);
@@ -1853,46 +1853,88 @@
                     pdf.text(generalLines, margin, yPosition);
                     yPosition += generalLines.length * 5 + 12;
 
-                    // Als Mitarbeiter
+                    // Sonnenseiten
                     pdf.setFontSize(14);
                     pdf.setTextColor(44, 62, 80);
                     pdf.setFont(undefined, 'bold');
-                    pdf.text('Als Mitarbeiter:', margin, yPosition);
+                    pdf.text('Sonnenseiten:', margin, yPosition);
                     yPosition += 8;
 
                     pdf.setFontSize(11);
                     pdf.setTextColor(51, 51, 51);
                     pdf.setFont(undefined, 'normal');
-                    const employeeLines = pdf.splitTextToSize(typeInfo.employee, contentWidth);
-                    pdf.text(employeeLines, margin, yPosition);
-                    yPosition += employeeLines.length * 5 + 12;
+                    const sonnenseitenLines = pdf.splitTextToSize(typeInfo.sonnenseiten, contentWidth);
+                    pdf.text(sonnenseitenLines, margin, yPosition);
+                    yPosition += sonnenseitenLines.length * 5 + 12;
 
-                    // Als Führungskraft
+                    // Schattenseiten
                     pdf.setFontSize(14);
                     pdf.setTextColor(44, 62, 80);
                     pdf.setFont(undefined, 'bold');
-                    pdf.text('Als Führungskraft:', margin, yPosition);
+                    pdf.text('Schattenseiten:', margin, yPosition);
                     yPosition += 8;
 
                     pdf.setFontSize(11);
                     pdf.setTextColor(51, 51, 51);
                     pdf.setFont(undefined, 'normal');
-                    const leaderLines = pdf.splitTextToSize(typeInfo.leader, contentWidth);
-                    pdf.text(leaderLines, margin, yPosition);
-                    yPosition += leaderLines.length * 5 + 12;
+                    const schattenseitenLines = pdf.splitTextToSize(typeInfo.schattenseiten, contentWidth);
+                    pdf.text(schattenseitenLines, margin, yPosition);
+                    yPosition += schattenseitenLines.length * 5 + 12;
 
-                    // Typische Rollen
+                    // Konfliktverhalten
                     pdf.setFontSize(14);
                     pdf.setTextColor(44, 62, 80);
                     pdf.setFont(undefined, 'bold');
-                    pdf.text('Typische Rollen:', margin, yPosition);
+                    pdf.text('Konfliktverhalten:', margin, yPosition);
+                    yPosition += 8;
+
+                    pdf.setFontSize(11);
+                    pdf.setTextColor(51, 51, 51);
+                    pdf.setFont(undefined, 'normal');
+                    const konfliktLines = pdf.splitTextToSize(typeInfo.konfliktverhalten, contentWidth);
+                    pdf.text(konfliktLines, margin, yPosition);
+                    yPosition += konfliktLines.length * 5 + 12;
+
+                    // Umgang mit Krisen
+                    pdf.setFontSize(14);
+                    pdf.setTextColor(44, 62, 80);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text('Umgang mit Krisen:', margin, yPosition);
+                    yPosition += 8;
+
+                    pdf.setFontSize(11);
+                    pdf.setTextColor(51, 51, 51);
+                    pdf.setFont(undefined, 'normal');
+                    const umgangLines = pdf.splitTextToSize(typeInfo.umgangKrisen, contentWidth);
+                    pdf.text(umgangLines, margin, yPosition);
+                    yPosition += umgangLines.length * 5 + 12;
+
+                    // Angst vor
+                    pdf.setFontSize(14);
+                    pdf.setTextColor(44, 62, 80);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text('Angst vor:', margin, yPosition);
+                    yPosition += 8;
+
+                    pdf.setFontSize(11);
+                    pdf.setTextColor(51, 51, 51);
+                    pdf.setFont(undefined, 'normal');
+                    const angstLines = pdf.splitTextToSize(typeInfo.angstVor, contentWidth);
+                    pdf.text(angstLines, margin, yPosition);
+                    yPosition += angstLines.length * 5 + 12;
+
+                    // Was kann mich unterstützen
+                    pdf.setFontSize(14);
+                    pdf.setTextColor(44, 62, 80);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text('Was kann mich unterstützen:', margin, yPosition);
                     yPosition += 8;
 
                     pdf.setFontSize(11);
                     pdf.setTextColor(52, 152, 219);
                     pdf.setFont(undefined, 'bold');
-                    const roleLines = pdf.splitTextToSize(typeInfo.role, contentWidth);
-                    pdf.text(roleLines, margin, yPosition);
+                    const unterstützungLines = pdf.splitTextToSize(typeInfo.unterstützung, contentWidth);
+                    pdf.text(unterstützungLines, margin, yPosition);
 
                     // Footer
                     pdf.setFontSize(10);
