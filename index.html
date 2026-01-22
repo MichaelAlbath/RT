@@ -1407,26 +1407,41 @@
 
         // Visualization Functions (unchanged from previous version)
         function updateVisualization(scores) {
-            const maxPossible = pointValues[3] * 12;
+            // Berechne den maximalen Wert aus den tatsächlichen Scores
+            const scoreValues = [scores[1], scores[2], scores[3], scores[4]];
+            const maxScore = Math.max(...scoreValues);
+            
+            // Mittelpunkt ist immer 0 (fest), nur das Ende ist dynamisch
+            const dynamicMin = 0;
+            const dynamicMax = maxScore;
+            const dynamicRange = dynamicMax - dynamicMin;
+            
             const centerX = 250;
             const centerY = 250;
             const maxRadius = 150;
             
+            // Normalisiere die Scores auf den Bereich [0, 1] basierend auf dem dynamischen Bereich
+            // Der Mittelpunkt entspricht 0, der Max-Wert liegt am äußeren Rand
+            const normalize = (value) => {
+                if (dynamicRange === 0) return 0; // Wenn maxScore = 0, dann alle Werte im Zentrum
+                return value / dynamicRange;
+            };
+            
             const positions = {
                 dauer: {
                     x: centerX,
-                    y: centerY - (scores[3] / maxPossible) * maxRadius
+                    y: centerY - normalize(scores[3]) * maxRadius
                 },
                 distanz: {
-                    x: centerX + (scores[1] / maxPossible) * maxRadius,
+                    x: centerX + normalize(scores[1]) * maxRadius,
                     y: centerY
                 },
                 wechsel: {
                     x: centerX,
-                    y: centerY + (scores[4] / maxPossible) * maxRadius
+                    y: centerY + normalize(scores[4]) * maxRadius
                 },
                 naehe: {
-                    x: centerX - (scores[2] / maxPossible) * maxRadius,
+                    x: centerX - normalize(scores[2]) * maxRadius,
                     y: centerY
                 }
             };
@@ -1452,20 +1467,23 @@
             
             document.getElementById('profilePolygon').setAttribute('points', polygonPoints);
             
-            updateGridAndScale(maxPossible, maxRadius, centerX, centerY);
+            updateGridAndScale(dynamicMin, dynamicMax, maxRadius, centerX, centerY);
         }
         
-        function updateGridAndScale(maxPossible, maxRadius, centerX, centerY) {
+        function updateGridAndScale(minValue, maxValue, maxRadius, centerX, centerY) {
             const gridContainer = document.getElementById('gridLines');
             const scaleContainer = document.getElementById('scaleMarkers');
             
             gridContainer.innerHTML = '';
             scaleContainer.innerHTML = '';
             
+            const range = maxValue - minValue;
             const steps = 4;
-            for (let i = 1; i <= steps; i++) {
+            
+            for (let i = 1; i < steps; i++) {
                 const radius = (maxRadius / steps) * i;
-                const value = (maxPossible / steps) * i;
+                // Berechne den Wert basierend auf dem dynamischen Bereich
+                const value = minValue + (range / steps) * i;
                 
                 const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 circle.setAttribute('cx', centerX);
@@ -1475,13 +1493,13 @@
                 circle.setAttribute('fill', 'none');
                 gridContainer.appendChild(circle);
                 
-                // Skalenmarkierungen für alle vier Achsen
+                // Skalenmarkierungen für alle vier Achsen (nur für innere Kreise, nicht für den äußersten)
                 // Dauer (oben)
                 const scaleTextDauer = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 scaleTextDauer.setAttribute('x', centerX + 8);
                 scaleTextDauer.setAttribute('y', centerY - radius + 3);
                 scaleTextDauer.setAttribute('class', 'scale-text');
-                scaleTextDauer.textContent = Math.round(value);
+                scaleTextDauer.textContent = value.toFixed(1);
                 scaleContainer.appendChild(scaleTextDauer);
                 
                 // Wechsel (unten)
@@ -1489,7 +1507,7 @@
                 scaleTextWechsel.setAttribute('x', centerX + 8);
                 scaleTextWechsel.setAttribute('y', centerY + radius + 3);
                 scaleTextWechsel.setAttribute('class', 'scale-text');
-                scaleTextWechsel.textContent = Math.round(value);
+                scaleTextWechsel.textContent = value.toFixed(1);
                 scaleContainer.appendChild(scaleTextWechsel);
                 
                 // Distanz (rechts)
@@ -1497,7 +1515,7 @@
                 scaleTextDistanz.setAttribute('x', centerX + radius + 8);
                 scaleTextDistanz.setAttribute('y', centerY + 3);
                 scaleTextDistanz.setAttribute('class', 'scale-text');
-                scaleTextDistanz.textContent = Math.round(value);
+                scaleTextDistanz.textContent = value.toFixed(1);
                 scaleContainer.appendChild(scaleTextDistanz);
                 
                 // Nähe (links)
@@ -1505,9 +1523,18 @@
                 scaleTextNaehe.setAttribute('x', centerX - radius - 8);
                 scaleTextNaehe.setAttribute('y', centerY + 3);
                 scaleTextNaehe.setAttribute('class', 'scale-text');
-                scaleTextNaehe.textContent = Math.round(value);
+                scaleTextNaehe.textContent = value.toFixed(1);
                 scaleContainer.appendChild(scaleTextNaehe);
             }
+            
+            // Äußerster Kreis (ohne Skalenmarkierungen, da Max-Wert separat angezeigt wird)
+            const outerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            outerCircle.setAttribute('cx', centerX);
+            outerCircle.setAttribute('cy', centerY);
+            outerCircle.setAttribute('r', maxRadius);
+            outerCircle.setAttribute('class', 'grid-line');
+            outerCircle.setAttribute('fill', 'none');
+            gridContainer.appendChild(outerCircle);
             
             // Zentrumspunkt
             const centerPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -1517,7 +1544,38 @@
             centerPoint.setAttribute('fill', '#666');
             scaleContainer.appendChild(centerPoint);
             
-
+            // Max-Wert (außen)
+            const maxTextDauer = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            maxTextDauer.setAttribute('x', centerX + 8);
+            maxTextDauer.setAttribute('y', centerY - maxRadius - 5);
+            maxTextDauer.setAttribute('class', 'scale-text');
+            maxTextDauer.setAttribute('font-weight', 'bold');
+            maxTextDauer.textContent = maxValue.toFixed(1);
+            scaleContainer.appendChild(maxTextDauer);
+            
+            const maxTextWechsel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            maxTextWechsel.setAttribute('x', centerX + 8);
+            maxTextWechsel.setAttribute('y', centerY + maxRadius + 15);
+            maxTextWechsel.setAttribute('class', 'scale-text');
+            maxTextWechsel.setAttribute('font-weight', 'bold');
+            maxTextWechsel.textContent = maxValue.toFixed(1);
+            scaleContainer.appendChild(maxTextWechsel);
+            
+            const maxTextDistanz = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            maxTextDistanz.setAttribute('x', centerX + maxRadius + 8);
+            maxTextDistanz.setAttribute('y', centerY + 3);
+            maxTextDistanz.setAttribute('class', 'scale-text');
+            maxTextDistanz.setAttribute('font-weight', 'bold');
+            maxTextDistanz.textContent = maxValue.toFixed(1);
+            scaleContainer.appendChild(maxTextDistanz);
+            
+            const maxTextNaehe = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            maxTextNaehe.setAttribute('x', centerX - maxRadius - 8);
+            maxTextNaehe.setAttribute('y', centerY + 3);
+            maxTextNaehe.setAttribute('class', 'scale-text');
+            maxTextNaehe.setAttribute('font-weight', 'bold');
+            maxTextNaehe.textContent = maxValue.toFixed(1);
+            scaleContainer.appendChild(maxTextNaehe);
         }
 
         // Settings Functions (unchanged from previous version)
